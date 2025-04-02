@@ -1,0 +1,138 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: const SettingsScreen(),
+    );
+  }
+}
+
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Settings'),
+        titleTextStyle: const TextStyle(fontSize: 18.0, color: Colors.white),
+        centerTitle: true,
+        backgroundColor: Colors.black87,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home, color: Colors.white),
+            onPressed: () {
+            },
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            settingsTile(context, 'Currency', 'LKR'),
+            settingsTile(context, 'Language', 'English'),
+            settingsTile(context, 'Notification Setting', ''),
+            settingsTile(context, 'Clear cache', '2K'),
+            settingsTile(context, 'Privacy policy', ''),
+            settingsTile(context, 'Version', '8.11.2'),
+            const SizedBox(height: 20),
+            signOutButton(context),
+            const SizedBox(height: 20),
+            logoSection(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget settingsTile(BuildContext context, String title, String value) {
+    return Card(
+      color: Colors.blueGrey[700],
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListTile(
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        trailing: value.isNotEmpty
+            ? Text(value, style: const TextStyle(color: Colors.white))
+            : const Icon(Icons.arrow_forward_ios, color: Colors.white),
+        onTap: () {
+          if (value.isEmpty) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DetailsPage(title: title),
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget signOutButton(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Signed out successfully!')),
+        );
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blueGrey[700],
+        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+      ),
+      child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+    );
+  }
+
+  Widget logoSection() {
+    return Column(
+      children: [
+        Container(
+          height: 50,
+          width: 150,
+          color: Colors.grey[300],
+          child: const Center(child: Text('LOGO')),
+        ),
+        const SizedBox(height: 5),
+        const Text('Version 8.11.2', style: TextStyle(color: Colors.grey)),
+      ],
+    );
+  }
+}
+
+class DetailsPage extends StatelessWidget {
+  final String title;
+  const DetailsPage({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+        backgroundColor: Colors.black87,
+      ),
+      body: Center(
+        child: Text(
+          'Details for $title',
+          style: const TextStyle(fontSize: 20),
+        ),
+      ),
+    );
+  }
+}
+
