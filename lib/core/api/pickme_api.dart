@@ -6,6 +6,7 @@ import 'package:taprobana_trails/config/constants.dart';
 import 'package:taprobana_trails/core/api/api_client.dart';
 import 'package:taprobana_trails/core/storage/secure_storage.dart';
 import 'package:taprobana_trails/data/models/ride.dart';
+import 'package:taprobana_trails/data/models/transport.dart';
 
 /// Exception thrown when there's a PickMe API error.
 class PickMeApiException implements Exception {
@@ -20,37 +21,39 @@ class PickMeApiException implements Exception {
   });
 
   @override
-  String toString() => 'PickMeApiException: $message (Code: $code, Status: $statusCode)';
+  String toString() =>
+      'PickMeApiException: $message (Code: $code, Status: $statusCode)';
 }
 
 /// Service class for interacting with the PickMe API.
 class PickMeApiService {
   static const String _tokenKey = 'pickme_access_token';
   static const String _tokenExpiryKey = 'pickme_token_expiry';
-  
+
   final ApiClient _apiClient;
   final SecureStorage _secureStorage;
   final AppConfig _appConfig;
   final CancelToken _cancelToken = CancelToken();
-  
+
   /// Creates a new [PickMeApiService].
   PickMeApiService({
     ApiClient? apiClient,
     SecureStorage? secureStorage,
     required AppConfig appConfig,
-  }) : _appConfig = appConfig,
-       _secureStorage = secureStorage ?? SecureStorage(),
-       _apiClient = apiClient ?? ApiClient(
-         baseUrl: ApiConstants.pickMeBaseUrl,
-         secureStorage: secureStorage ?? SecureStorage(),
-       );
-  
+  })  : _appConfig = appConfig,
+        _secureStorage = secureStorage ?? SecureStorage(),
+        _apiClient = apiClient ??
+            ApiClient(
+              baseUrl: ApiConstants.pickMeBaseUrl,
+              secureStorage: secureStorage ?? SecureStorage(),
+            );
+
   /// Initializes the PickMe API service.
   Future<void> initialize() async {
     try {
       final token = await _secureStorage.read(key: _tokenKey);
       final expiryString = await _secureStorage.read(key: _tokenExpiryKey);
-      
+
       // Check if token exists and is not expired
       if (token != null && expiryString != null) {
         final expiry = DateTime.parse(expiryString);
@@ -59,7 +62,7 @@ class PickMeApiService {
           return;
         }
       }
-      
+
       // Token doesn't exist or is expired, request a new one
       await _requestAccessToken();
     } catch (e) {
@@ -69,7 +72,7 @@ class PickMeApiService {
       );
     }
   }
-  
+
   /// Requests a new access token from the PickMe API.
   Future<void> _requestAccessToken() async {
     try {
@@ -85,18 +88,20 @@ class PickMeApiService {
           },
         ),
       );
-      
+
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data as Map<String, dynamic>;
         final token = data['access_token'] as String;
-        final expiresIn = data['expires_in'] as int? ?? 3600; // Default to 1 hour
-        
+        final expiresIn =
+            data['expires_in'] as int? ?? 3600; // Default to 1 hour
+
         // Calculate expiry time
         final expiry = DateTime.now().add(Duration(seconds: expiresIn));
-        
+
         // Save token and expiry time
         await _secureStorage.write(key: _tokenKey, value: token);
-        await _secureStorage.write(key: _tokenExpiryKey, value: expiry.toIso8601String());
+        await _secureStorage.write(
+            key: _tokenExpiryKey, value: expiry.toIso8601String());
       } else {
         throw PickMeApiException(
           message: 'Failed to get access token',
@@ -110,33 +115,33 @@ class PickMeApiService {
       );
     }
   }
-  
+
   /// Gets the auth token for API requests.
   Future<String?> _getAuthToken() async {
     try {
       final token = await _secureStorage.read(key: _tokenKey);
       final expiryString = await _secureStorage.read(key: _tokenExpiryKey);
-      
+
       if (token == null || expiryString == null) {
         await _requestAccessToken();
         return await _secureStorage.read(key: _tokenKey);
       }
-      
+
       final expiry = DateTime.parse(expiryString);
       if (expiry.isBefore(DateTime.now())) {
         await _requestAccessToken();
         return await _secureStorage.read(key: _tokenKey);
       }
-      
+
       return token;
     } catch (e) {
       debugPrint('Error getting auth token: $e');
       return null;
     }
   }
-  
+
   /// Gets the estimated ride price.
-  /// 
+  ///
   /// [startLatitude] and [startLongitude] define the starting point.
   /// [endLatitude] and [endLongitude] define the destination.
   Future<Map<String, dynamic>> getRidePriceEstimates({
@@ -148,11 +153,11 @@ class PickMeApiService {
     try {
       await initialize();
       final token = await _getAuthToken();
-      
+
       if (token == null) {
         throw PickMeApiException(message: 'Authentication failed');
       }
-      
+
       final response = await _apiClient.post<Map<String, dynamic>>(
         '/estimates/price',
         data: {
@@ -169,7 +174,7 @@ class PickMeApiService {
         ),
         cancelToken: _cancelToken,
       );
-      
+
       return response;
     } on NetworkException catch (e) {
       throw PickMeApiException(
@@ -181,9 +186,9 @@ class PickMeApiService {
       throw PickMeApiException(message: e.toString());
     }
   }
-  
+
   /// Gets the estimated time of arrival for a ride.
-  /// 
+  ///
   /// [latitude] and [longitude] define the pickup location.
   Future<Map<String, dynamic>> getRideTimeEstimates({
     required double latitude,
@@ -192,11 +197,11 @@ class PickMeApiService {
     try {
       await initialize();
       final token = await _getAuthToken();
-      
+
       if (token == null) {
         throw PickMeApiException(message: 'Authentication failed');
       }
-      
+
       final response = await _apiClient.post<Map<String, dynamic>>(
         '/estimates/time',
         data: {
@@ -211,7 +216,7 @@ class PickMeApiService {
         ),
         cancelToken: _cancelToken,
       );
-      
+
       return response;
     } on NetworkException catch (e) {
       throw PickMeApiException(
@@ -223,9 +228,9 @@ class PickMeApiService {
       throw PickMeApiException(message: e.toString());
     }
   }
-  
+
   /// Gets a list of available ride options.
-  /// 
+  ///
   /// [startLatitude] and [startLongitude] define the starting point.
   /// [endLatitude] and [endLongitude] define the destination.
   Future<List<Ride>> getAvailableRides({
@@ -241,50 +246,78 @@ class PickMeApiService {
         endLatitude: endLatitude,
         endLongitude: endLongitude,
       );
-      
+
       final timeEstimates = await getRideTimeEstimates(
         latitude: startLatitude,
         longitude: startLongitude,
       );
-      
+
       // Process and combine the estimates to create ride objects
       final List<Ride> rides = [];
       final priceData = priceEstimates['categories'] as List<dynamic>? ?? [];
       final timeData = timeEstimates['categories'] as List<dynamic>? ?? [];
-      
+
       for (final price in priceData) {
         final categoryId = price['category_id'];
         final time = timeData.firstWhere(
           (t) => t['category_id'] == categoryId,
           orElse: () => {'eta': 0},
         );
-        
-        rides.add(Ride(
+
+        // Create a proper Ride object based on the model from ride.dart
+        final ride = Ride(
           id: categoryId,
-          name: price['name'] ?? 'Unknown',
-          estimatedPrice: 'LKR ${price['estimated_price'] ?? 'Unknown'}',
-          estimatedDuration: time['eta'] != null
-              ? Duration(minutes: time['eta'])
-              : Duration.zero,
+          userId: 'dummy-user-id', // Required field, use a placeholder
+          status: RideStatus.pending,
+          transportType: _getTransportType(price['name']),
+          pickupAddress: 'Current Location',
+          dropoffAddress: 'Destination',
+          pickupLatitude: startLatitude,
+          pickupLongitude: startLongitude,
+          dropoffLatitude: endLatitude,
+          dropoffLongitude: endLongitude,
+          pickupTime: DateTime.now(),
           estimatedDistance: price['distance'] != null
               ? double.parse(price['distance'].toString())
               : 0.0,
-          currency: 'LKR',
-          surge: price['surge'] == true,
-          image: _getRideImage(price['name']),
-          provider: 'PickMe',
-        ));
+          estimatedDuration: time['eta'] ?? 0,
+          estimatedFare: price['estimated_price'] != null
+              ? double.parse(price['estimated_price'].toString())
+              : 0.0,
+          paymentMethod: PaymentMethod.cash,
+          paymentStatus: PaymentStatus.pending,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        rides.add(ride);
       }
-      
+
       return rides;
     } catch (e) {
       debugPrint('Error getting available rides: $e');
       return [];
     }
   }
-  
+
+// Helper method to convert ride name to TransportType
+  TransportType _getTransportType(String? rideName) {
+    if (rideName == null) return TransportType.car;
+
+    switch (rideName.toLowerCase()) {
+      case 'tuk':
+        return TransportType.tuktuk;
+      case 'car':
+      case 'car plus':
+      case 'car premium':
+        return TransportType.car;
+      default:
+        return TransportType.taxi;
+    }
+  }
+
   /// Requests a ride.
-  /// 
+  ///
   /// [categoryId] is the ID of the ride category to request.
   /// [startLatitude] and [startLongitude] define the starting point.
   /// [endLatitude] and [endLongitude] define the destination.
@@ -301,11 +334,11 @@ class PickMeApiService {
     try {
       await initialize();
       final token = await _getAuthToken();
-      
+
       if (token == null) {
         throw PickMeApiException(message: 'Authentication failed');
       }
-      
+
       final data = {
         'category_id': categoryId,
         'pickup': {
@@ -318,16 +351,16 @@ class PickMeApiService {
         },
         'payment_method': paymentMethod,
       };
-      
+
       // Add optional parameters if provided
       if (startAddress != null) {
         (data['pickup'] as Map<String, dynamic>)['address'] = startAddress;
       }
-      
+
       if (endAddress != null) {
         (data['dropoff'] as Map<String, dynamic>)['address'] = endAddress;
       }
-      
+
       final response = await _apiClient.post<Map<String, dynamic>>(
         '/bookings',
         data: data,
@@ -339,7 +372,7 @@ class PickMeApiService {
         ),
         cancelToken: _cancelToken,
       );
-      
+
       return response;
     } on NetworkException catch (e) {
       throw PickMeApiException(
@@ -351,19 +384,19 @@ class PickMeApiService {
       throw PickMeApiException(message: e.toString());
     }
   }
-  
+
   /// Checks the status of a ride request.
-  /// 
+  ///
   /// [bookingId] is the ID of the booking.
   Future<Map<String, dynamic>> checkRideStatus(String bookingId) async {
     try {
       await initialize();
       final token = await _getAuthToken();
-      
+
       if (token == null) {
         throw PickMeApiException(message: 'Authentication failed');
       }
-      
+
       final response = await _apiClient.get<Map<String, dynamic>>(
         '/bookings/$bookingId',
         options: Options(
@@ -374,7 +407,7 @@ class PickMeApiService {
         ),
         cancelToken: _cancelToken,
       );
-      
+
       return response;
     } on NetworkException catch (e) {
       throw PickMeApiException(
@@ -386,22 +419,22 @@ class PickMeApiService {
       throw PickMeApiException(message: e.toString());
     }
   }
-  
+
   /// Cancels a ride request.
-  /// 
+  ///
   /// [bookingId] is the ID of the booking.
   /// [reason] is the reason for cancellation.
   Future<bool> cancelRide(String bookingId, {String? reason}) async {
     try {
       await initialize();
       final token = await _getAuthToken();
-      
+
       if (token == null) {
         throw PickMeApiException(message: 'Authentication failed');
       }
-      
+
       final data = reason != null ? {'reason': reason} : null;
-      
+
       final response = await _apiClient.post<Map<String, dynamic>>(
         '/bookings/$bookingId/cancel',
         data: data,
@@ -413,7 +446,7 @@ class PickMeApiService {
         ),
         cancelToken: _cancelToken,
       );
-      
+
       return response['status'] == 'SUCCESS';
     } on NetworkException catch (e) {
       throw PickMeApiException(
@@ -425,19 +458,19 @@ class PickMeApiService {
       throw PickMeApiException(message: e.toString());
     }
   }
-  
+
   /// Gets driver location.
-  /// 
+  ///
   /// [bookingId] is the ID of the booking.
   Future<Map<String, dynamic>> getDriverLocation(String bookingId) async {
     try {
       await initialize();
       final token = await _getAuthToken();
-      
+
       if (token == null) {
         throw PickMeApiException(message: 'Authentication failed');
       }
-      
+
       final response = await _apiClient.get<Map<String, dynamic>>(
         '/bookings/$bookingId/driver-location',
         options: Options(
@@ -448,7 +481,7 @@ class PickMeApiService {
         ),
         cancelToken: _cancelToken,
       );
-      
+
       return response;
     } on NetworkException catch (e) {
       throw PickMeApiException(
@@ -460,11 +493,11 @@ class PickMeApiService {
       throw PickMeApiException(message: e.toString());
     }
   }
-  
+
   /// Gets a ride image based on the ride name.
   String _getRideImage(String? rideName) {
     if (rideName == null) return 'assets/images/pickme_default.png';
-    
+
     switch (rideName.toLowerCase()) {
       case 'tuk':
         return 'assets/images/pickme_tuk.png';
@@ -480,7 +513,7 @@ class PickMeApiService {
         return 'assets/images/pickme_default.png';
     }
   }
-  
+
   /// Cancels any ongoing requests.
   void dispose() {
     if (!_cancelToken.isCancelled) {

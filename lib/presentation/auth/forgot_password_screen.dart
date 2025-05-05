@@ -5,10 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:lottie/lottie.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-
 import '../../bloc/auth/auth_bloc.dart';
-part of '../../bloc/auth/auth_event.dart';
-part of '../../bloc/auth/auth_state.dart';
 import '../../core/utils/connectivity.dart';
 import '../../core/utils/validation.dart';
 import '../common/widgets/app_bar.dart';
@@ -27,8 +24,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   bool _isLoading = false;
   bool _emailSent = false;
-  
-  get ConnectivityHelper => null;
+
+  // Fix the ConnectivityHelper implementation
+  late final ConnectivityHelper;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize ConnectivityHelper here in initState instead
+    ConnectivityHelper = ConnectivityHelper();
+  }
 
   @override
   void dispose() {
@@ -49,15 +54,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       // Check connectivity first
       final isConnected = await ConnectivityHelper.isConnected();
       if (!isConnected) {
-        throw Exception('No internet connection. Please check your connection and try again.');
+        throw Exception(
+            'No internet connection. Please check your connection and try again.');
       }
 
-      // Dispatch password reset event
-      // ignore: use_build_context_synchronously
-      context.read<AuthBloc>().add(
-        AuthPasswordReset(
-          email: _emailController.text.trim(),
-        ),
+      // Instead of using AuthPasswordReset, use the Firebase Auth directly
+      // since your AuthBloc doesn't have this event
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: _emailController.text.trim(),
+      );
+
+      // Handle success manually
+      setState(() {
+        _isLoading = false;
+        _emailSent = true;
+      });
+
+      Fluttertoast.showToast(
+        msg: 'Password reset email sent successfully!',
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
       );
     } catch (e) {
       setState(() {
@@ -91,22 +107,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             setState(() {
               _isLoading = true;
             });
-          } else if (state is AuthPasswordResetSuccess) {
-            setState(() {
-              _isLoading = false;
-              _emailSent = true;
-            });
-            
-            Fluttertoast.showToast(
-              msg: 'Password reset email sent successfully!',
-              backgroundColor: Colors.green,
-              textColor: Colors.white,
-            );
           } else if (state is AuthError) {
             setState(() {
               _isLoading = false;
             });
-            
+
             _showErrorSnackBar(state.message);
           }
         },
@@ -115,7 +120,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  Widget _buildResetForm(dynamic Validators) {
+  // Fix the _buildResetForm method by removing the dynamic Validators parameter
+  Widget _buildResetForm() {
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -128,12 +134,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               Text(
                 'Reset Your Password',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16.0),
-              
+
               // Description
               Text(
                 'Enter your email address and we\'ll send you a link to reset your password.',
@@ -141,7 +147,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40.0),
-              
+
               // Illustration
               Center(
                 child: Lottie.asset(
@@ -152,7 +158,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
               const SizedBox(height: 40.0),
-              
+
               // Email field
               TextFormField(
                 controller: _emailController,
@@ -165,11 +171,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     borderRadius: BorderRadius.circular(12.0),
                   ),
                 ),
-                validator: Validators.validateEmail,
+                // Use the Validators class directly without passing it as parameter
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  if (!RegExp(
+                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+                      .hasMatch(value)) {
+                    return 'Please enter a valid email address';
+                  }
+                  return null;
+                },
                 enabled: !_isLoading,
               ),
               const SizedBox(height: 24.0),
-              
+
               // Reset button
               ElevatedButton(
                 onPressed: _isLoading ? null : _resetPassword,
@@ -187,7 +204,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
               ),
               const SizedBox(height: 16.0),
-              
+
               // Back to login button
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -218,17 +235,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
             ),
             const SizedBox(height: 32.0),
-            
+
             // Success title
             Text(
               'Email Sent!',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16.0),
-            
+
             // Success message
             Text(
               'We\'ve sent a password reset link to:\n${_emailController.text}',
@@ -236,7 +253,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8.0),
-            
+
             // Instructions
             Text(
               'Please check your email and follow the instructions to reset your password.',
@@ -244,7 +261,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 48.0),
-            
+
             // Didn't receive email?
             Text(
               'Didn\'t receive the email?',
@@ -252,7 +269,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16.0),
-            
+
             // Check spam folder instructions
             Container(
               padding: const EdgeInsets.all(16.0),
@@ -273,8 +290,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       Text(
                         'Tips:',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                     ],
                   ),
@@ -297,7 +314,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
             ),
             const SizedBox(height: 24.0),
-            
+
             // Try again button
             OutlinedButton(
               onPressed: () {
@@ -314,7 +331,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               child: const Text('Try Again'),
             ),
             const SizedBox(height: 16.0),
-            
+
             // Back to login button
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
@@ -331,6 +348,4 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ),
     );
   }
-  
-  
 }

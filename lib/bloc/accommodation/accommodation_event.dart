@@ -3,7 +3,7 @@ part of 'accommodation_bloc.dart';
 /// Base class for all accommodation events.
 abstract class AccommodationEvent extends Equatable {
   const AccommodationEvent();
-  
+
   @override
   List<Object?> get props => [];
 }
@@ -11,19 +11,28 @@ abstract class AccommodationEvent extends Equatable {
 /// Event that is fired when accommodations need to be loaded.
 class LoadAccommodations extends AccommodationEvent {
   final String? destinationId;
-  
-  const LoadAccommodations({this.destinationId});
-  
+  final DateTime? checkInDate;
+  final DateTime? checkOutDate;
+  final int? guestCount;
+
+  const LoadAccommodations({
+    this.destinationId,
+    this.checkInDate,
+    this.checkOutDate,
+    this.guestCount,
+  });
+
   @override
-  List<Object?> get props => [destinationId];
+  List<Object?> get props =>
+      [destinationId, checkInDate, checkOutDate, guestCount];
 }
 
 /// Event that is fired when accommodation details need to be loaded.
 class LoadAccommodationDetails extends AccommodationEvent {
   final String accommodationId;
-  
+
   const LoadAccommodationDetails({required this.accommodationId});
-  
+
   @override
   List<Object> get props => [accommodationId];
 }
@@ -31,9 +40,9 @@ class LoadAccommodationDetails extends AccommodationEvent {
 /// Event that is fired when accommodations need to be filtered.
 class FilterAccommodations extends AccommodationEvent {
   final Map<String, dynamic> filters;
-  
+
   const FilterAccommodations({required this.filters});
-  
+
   @override
   List<Object> get props => [filters];
 }
@@ -42,9 +51,10 @@ class FilterAccommodations extends AccommodationEvent {
 class SaveAccommodation extends AccommodationEvent {
   final String userId;
   final String accommodationId;
-  
-  const SaveAccommodation({required this.userId, required this.accommodationId});
-  
+
+  const SaveAccommodation(
+      {required this.userId, required this.accommodationId});
+
   @override
   List<Object> get props => [userId, accommodationId];
 }
@@ -53,9 +63,10 @@ class SaveAccommodation extends AccommodationEvent {
 class UnsaveAccommodation extends AccommodationEvent {
   final String userId;
   final String accommodationId;
-  
-  const UnsaveAccommodation({required this.userId, required this.accommodationId});
-  
+
+  const UnsaveAccommodation(
+      {required this.userId, required this.accommodationId});
+
   @override
   List<Object> get props => [userId, accommodationId];
 }
@@ -63,11 +74,42 @@ class UnsaveAccommodation extends AccommodationEvent {
 /// Event that is fired when accommodations need to be searched.
 class SearchAccommodations extends AccommodationEvent {
   final String query;
-  
-  const SearchAccommodations({required this.query});
-  
+  final String? destinationId;
+  final DateTime? checkInDate;
+  final DateTime? checkOutDate;
+  final int? guestCount;
+  final List<String>? amenities;
+  final double? minPrice;
+  final double? maxPrice;
+  final String? accommodationType;
+  final double? minRating;
+
+  const SearchAccommodations({
+    required this.query,
+    this.destinationId,
+    this.checkInDate,
+    this.checkOutDate,
+    this.guestCount,
+    this.amenities,
+    this.minPrice,
+    this.maxPrice,
+    this.accommodationType,
+    this.minRating,
+  });
+
   @override
-  List<Object> get props => [query];
+  List<Object?> get props => [
+        query,
+        destinationId,
+        checkInDate,
+        checkOutDate,
+        guestCount,
+        amenities,
+        minPrice,
+        maxPrice,
+        accommodationType,
+        minRating,
+      ];
 }
 
 /// Event that is fired when room types need to be loaded.
@@ -75,13 +117,13 @@ class LoadRoomTypes extends AccommodationEvent {
   final String accommodationId;
   final DateTime? checkIn;
   final DateTime? checkOut;
-  
+
   const LoadRoomTypes({
     required this.accommodationId,
     this.checkIn,
     this.checkOut,
   });
-  
+
   @override
   List<Object?> get props => [accommodationId, checkIn, checkOut];
 }
@@ -93,7 +135,7 @@ class CheckRoomAvailability extends AccommodationEvent {
   final DateTime checkIn;
   final DateTime checkOut;
   final int guests;
-  
+
   const CheckRoomAvailability({
     required this.accommodationId,
     required this.roomTypeId,
@@ -101,13 +143,70 @@ class CheckRoomAvailability extends AccommodationEvent {
     required this.checkOut,
     required this.guests,
   });
-  
+
   @override
   List<Object> get props => [
-    accommodationId,
-    roomTypeId,
-    checkIn,
-    checkOut,
-    guests,
-  ];
+        accommodationId,
+        roomTypeId,
+        checkIn,
+        checkOut,
+        guests,
+      ];
+}
+
+/// Event that is fired when accommodation availability needs to be checked.
+class AccommodationCheckAvailability extends AccommodationEvent {
+  final String? accommodationId;
+  final DateTime checkInDate;
+  final DateTime checkOutDate;
+
+  const AccommodationCheckAvailability({
+    this.accommodationId,
+    required this.checkInDate,
+    required this.checkOutDate,
+  });
+
+  @override
+  List<Object?> get props => [accommodationId, checkInDate, checkOutDate];
+}
+
+/// Event that is fired when a booking is submitted.
+class AccommodationBooking extends AccommodationEvent {
+  final String? accommodationId;
+  final String userId;
+  final DateTime checkInDate;
+  final DateTime checkOutDate;
+  final int guestCount;
+  final double totalPrice;
+  final String? specialRequests;
+  final String customerName;
+  final String customerEmail;
+  final String customerPhone;
+
+  const AccommodationBooking({
+    this.accommodationId,
+    required this.userId,
+    required this.checkInDate,
+    required this.checkOutDate,
+    required this.guestCount,
+    required this.totalPrice,
+    this.specialRequests,
+    required this.customerName,
+    required this.customerEmail,
+    required this.customerPhone,
+  });
+
+  @override
+  List<Object?> get props => [
+        accommodationId,
+        userId,
+        checkInDate,
+        checkOutDate,
+        guestCount,
+        totalPrice,
+        specialRequests,
+        customerName,
+        customerEmail,
+        customerPhone,
+      ];
 }

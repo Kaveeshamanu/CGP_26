@@ -202,20 +202,20 @@ class Ride extends Equatable {
 
   /// Checks if the ride is a scheduled ride.
   bool isScheduled() {
-    return scheduledPickupTime != null && 
-           scheduledPickupTime!.isAfter(DateTime.now());
+    return scheduledPickupTime != null &&
+        scheduledPickupTime!.isAfter(DateTime.now());
   }
 
   /// Calculates the total distance including intermediate stops.
   double calculateTotalDistance() {
     double totalDistance = estimatedDistance;
-    
+
     if (intermediateStops != null && intermediateStops!.isNotEmpty) {
       // Add extra distance for intermediate stops
       // This is a simplification, in a real app you would use detailed routing
       totalDistance += 0.5 * intermediateStops!.length;
     }
-    
+
     return totalDistance;
   }
 
@@ -224,29 +224,29 @@ class Ride extends Equatable {
     if (actualFare != null) {
       return actualFare!;
     }
-    
+
     double fare = estimatedFare;
-    
+
     // Add extra for intermediate stops
     if (intermediateStops != null && intermediateStops!.isNotEmpty) {
       fare += 50.0 * intermediateStops!.length; // 50 LKR per stop
     }
-    
+
     // Add extras from ride options
     if (rideOptions != null) {
       if (rideOptions!.extraLuggage) {
         fare += 100.0; // 100 LKR for extra luggage
       }
-      
+
       if (rideOptions!.premiumVehicle) {
         fare *= 1.2; // 20% extra for premium vehicle
       }
-      
+
       if (rideOptions!.petFriendly) {
         fare += 150.0; // 150 LKR for pet friendly ride
       }
     }
-    
+
     return fare;
   }
 
@@ -395,7 +395,8 @@ class RideStop extends Equatable {
   }
 
   /// Creates a RideStop from a JSON object.
-  factory RideStop.fromJson(Map<String, dynamic> json) => _$RideStopFromJson(json);
+  factory RideStop.fromJson(Map<String, dynamic> json) =>
+      _$RideStopFromJson(json);
 
   /// Converts this RideStop to a JSON object.
   Map<String, dynamic> toJson() => _$RideStopToJson(this);
@@ -455,7 +456,8 @@ class RideOptions extends Equatable {
   }
 
   /// Creates a RideOptions from a JSON object.
-  factory RideOptions.fromJson(Map<String, dynamic> json) => _$RideOptionsFromJson(json);
+  factory RideOptions.fromJson(Map<String, dynamic> json) =>
+      _$RideOptionsFromJson(json);
 
   /// Converts this RideOptions to a JSON object.
   Map<String, dynamic> toJson() => _$RideOptionsToJson(this);
@@ -463,54 +465,43 @@ class RideOptions extends Equatable {
   /// Returns a list of all options that are enabled
   List<String> getEnabledOptions() {
     List<String> options = [];
-    
+
     if (extraLuggage) options.add('Extra Luggage');
     if (premiumVehicle) options.add('Premium Vehicle');
     if (petFriendly) options.add('Pet Friendly');
     if (childSeat) options.add('Child Seat');
     if (wheelchairAccessible) options.add('Wheelchair Accessible');
     if (englishSpeaking) options.add('English Speaking Driver');
-    
+
     return options;
   }
 
   /// Returns a string describing all enabled options
   String getOptionsDescription() {
     final options = getEnabledOptions();
-    
+
     if (options.isEmpty) {
       return 'No special options';
     }
-    
+
     return options.join(', ');
   }
 }
 
 /// Enum representing the status of a ride
 enum RideStatus {
-  pending,      // Waiting for driver acceptance
-  accepted,     // Driver has accepted
-  arriving,     // Driver is on the way to pickup
-  arrived,      // Driver has arrived at pickup location
-  inProgress,   // Ride is in progress
-  completed,    // Ride has been completed
-  cancelled,    // Ride was cancelled
+  pending, // Waiting for driver acceptance
+  accepted, // Driver has accepted
+  arriving, // Driver is on the way to pickup
+  arrived, // Driver has arrived at pickup location
+  inProgress, // Ride is in progress
+  completed, // Ride has been completed
+  cancelled, // Ride was cancelled
   noDriverFound // No driver was found for the ride
 }
 
 /// Enum representing payment methods
-enum PaymentMethod {
-  cash,
-  creditCard,
-  applePay,
-  googlePay,
-  paypal
-}
+enum PaymentMethod { cash, creditCard, applePay, googlePay, paypal }
 
 /// Enum representing payment status
-enum PaymentStatus {
-  pending,
-  completed,
-  failed,
-  refunded
-}
+enum PaymentStatus { pending, completed, failed, refunded }

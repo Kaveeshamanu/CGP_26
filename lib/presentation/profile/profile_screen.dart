@@ -26,15 +26,15 @@ class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ImagePicker _imagePicker = ImagePicker();
-  
+
   User? _user;
   bool _isLoading = false;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Load user data
     _fetchUserData();
   }
@@ -49,11 +49,11 @@ class _ProfileScreenState extends State<ProfileScreen>
     setState(() {
       _isLoading = true;
     });
-    
+
     // In a real app, this would load from the auth bloc
     // For now, we'll simulate loading user data
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     setState(() {
       _user = User(
         id: 'user123',
@@ -94,22 +94,22 @@ class _ProfileScreenState extends State<ProfileScreen>
       maxHeight: 512,
       imageQuality: 80,
     );
-    
+
     if (image != null) {
       setState(() {
         _isLoading = true;
       });
-      
+
       // In a real app, this would upload the image to storage
       // and update the user's profile
       await Future.delayed(const Duration(seconds: 1));
-      
+
       // Simulate update success
       setState(() {
         // _user would be updated with the new image URL in a real app
         _isLoading = false;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Profile picture updated'),
@@ -129,7 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   void _shareProfile() {
     if (_user == null) return;
-    
+
     Share.share(
       'Check out my travels on Taprobana Trails! I\'ve visited ${_user!.completedTrips} destinations and earned ${_user!.travelPoints} points. Join me on https://taprobanatrails.com',
     );
@@ -166,7 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               Navigator.pushReplacementNamed(context, '/login');
             });
           }
-          
+
           return Stack(
             children: [
               _buildProfileContent(),
@@ -189,7 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -199,7 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             onEditProfileTap: _editProfile,
             onProfileImageTap: _updateProfilePicture,
           ),
-          
+
           // Tabs
           Container(
             decoration: BoxDecoration(
@@ -224,7 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ],
             ),
           ),
-          
+
           // Tab content
           SizedBox(
             height: screenHeight * 0.6, // Adjust based on content
@@ -280,9 +280,9 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Profile information
           const Text(
             'Account Information',
@@ -309,9 +309,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             title: 'Member Since',
             value: _formatDate(_user!.memberSince),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Action buttons
           Row(
             children: [
@@ -359,7 +359,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         },
       );
     }
-    
+
     // Placeholder content for trips tab
     return Center(
       child: Text(
@@ -381,7 +381,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         },
       );
     }
-    
+
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -615,20 +615,30 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   String _formatDate(DateTime date) {
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
-    
+
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }
 
 extension on Badge {
-  DateTime get dateEarned => ;
-  
+  DateTime get dateEarned => DateTime.now();
+
   String get name => "";
-  
+
   String get description => "";
-  
+
   String get iconUrl => "";
 }

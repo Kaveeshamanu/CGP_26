@@ -11,11 +11,11 @@ class TransportRepository {
   final String _schedulesCollection = 'transport_schedules';
   final String _rentalsCollection = 'transport_rentals';
   final String _bookingsCollection = 'transport_bookings';
-  
+
   /// Creates a new [TransportRepository] instance.
   TransportRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
-  
+
   /// Gets public transport options.
   Future<List<Map<String, dynamic>>> getPublicTransportOptions({
     required String from,
@@ -25,45 +25,56 @@ class TransportRepository {
     try {
       final options = <Map<String, dynamic>>[];
       final currentDate = date ?? DateTime.now();
-      
+
       // Get bus schedules
       final busSchedule = await getTransportSchedule(
         transportType: 'bus',
         route: '$from-$to',
         date: currentDate,
       );
-      
+
       if (busSchedule != null) {
-        options.add({
-          'type': 'bus',
-          'origin': busSchedule.origin,
-          'destination': busSchedule.destination,
-          'date': busSchedule.date,
-          'options': busSchedule.entries,
-          'cheapest': busSchedule.cheapestEntry,
-          'fastest': busSchedule.fastestEntry,
-        });
+        final upcomingDepartures = busSchedule.getUpcomingDepartures(limit: 5);
+
+        if (upcomingDepartures.isNotEmpty) {
+          options.add({
+            'type': 'bus',
+            'origin': busSchedule.origin,
+            'destination': busSchedule.destination,
+            'date': currentDate,
+            'options': upcomingDepartures,
+            'operator': busSchedule.operator,
+            'estimatedDuration': busSchedule.getEstimatedTravelTimeMinutes(),
+            'route': busSchedule.route,
+          });
+        }
       }
-      
+
       // Get train schedules
       final trainSchedule = await getTransportSchedule(
         transportType: 'train',
         route: '$from-$to',
         date: currentDate,
       );
-      
+
       if (trainSchedule != null) {
-        options.add({
-          'type': 'train',
-          'origin': trainSchedule.origin,
-          'destination': trainSchedule.destination,
-          'date': trainSchedule.date,
-          'options': trainSchedule.entries,
-          'cheapest': trainSchedule.cheapestEntry,
-          'fastest': trainSchedule.fastestEntry,
-        });
+        final upcomingDepartures =
+            trainSchedule.getUpcomingDepartures(limit: 5);
+
+        if (upcomingDepartures.isNotEmpty) {
+          options.add({
+            'type': 'train',
+            'origin': trainSchedule.origin,
+            'destination': trainSchedule.destination,
+            'date': currentDate,
+            'options': upcomingDepartures,
+            'operator': trainSchedule.operator,
+            'estimatedDuration': trainSchedule.getEstimatedTravelTimeMinutes(),
+            'route': trainSchedule.route,
+          });
+        }
       }
-      
+
       // Get ferry schedules if appropriate
       if (_isCoastalLocation(from) || _isCoastalLocation(to)) {
         final ferrySchedule = await getTransportSchedule(
@@ -71,20 +82,27 @@ class TransportRepository {
           route: '$from-$to',
           date: currentDate,
         );
-        
+
         if (ferrySchedule != null) {
-          options.add({
-            'type': 'ferry',
-            'origin': ferrySchedule.origin,
-            'destination': ferrySchedule.destination,
-            'date': ferrySchedule.date,
-            'options': ferrySchedule.entries,
-            'cheapest': ferrySchedule.cheapestEntry,
-            'fastest': ferrySchedule.fastestEntry,
-          });
+          final upcomingDepartures =
+              ferrySchedule.getUpcomingDepartures(limit: 5);
+
+          if (upcomingDepartures.isNotEmpty) {
+            options.add({
+              'type': 'ferry',
+              'origin': ferrySchedule.origin,
+              'destination': ferrySchedule.destination,
+              'date': currentDate,
+              'options': upcomingDepartures,
+              'operator': ferrySchedule.operator,
+              'estimatedDuration':
+                  ferrySchedule.getEstimatedTravelTimeMinutes(),
+              'route': ferrySchedule.route,
+            });
+          }
         }
       }
-      
+
       // Get flight schedules for longer distances
       if (_isLongDistance(from, to)) {
         final flightSchedule = await getTransportSchedule(
@@ -92,27 +110,34 @@ class TransportRepository {
           route: '$from-$to',
           date: currentDate,
         );
-        
+
         if (flightSchedule != null) {
-          options.add({
-            'type': 'flight',
-            'origin': flightSchedule.origin,
-            'destination': flightSchedule.destination,
-            'date': flightSchedule.date,
-            'options': flightSchedule.entries,
-            'cheapest': flightSchedule.cheapestEntry,
-            'fastest': flightSchedule.fastestEntry,
-          });
+          final upcomingDepartures =
+              flightSchedule.getUpcomingDepartures(limit: 5);
+
+          if (upcomingDepartures.isNotEmpty) {
+            options.add({
+              'type': 'flight',
+              'origin': flightSchedule.origin,
+              'destination': flightSchedule.destination,
+              'date': currentDate,
+              'options': upcomingDepartures,
+              'operator': flightSchedule.operator,
+              'estimatedDuration':
+                  flightSchedule.getEstimatedTravelTimeMinutes(),
+              'route': flightSchedule.route,
+            });
+          }
         }
       }
-      
+
       return options;
     } catch (e) {
       debugPrint('Error getting public transport options: $e');
       return [];
     }
   }
-  
+
   /// Gets transport schedule by type, route, and date.
   Future<TransportSchedule?> getTransportSchedule({
     required String transportType,
@@ -120,23 +145,20 @@ class TransportRepository {
     required DateTime date,
   }) async {
     try {
-      // Format date to YYYY-MM-DD for querying
-      final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      
-      // Query Firestore
+      // Query by route (origin-destination) and transport type
       final snapshot = await _firestore
           .collection(_schedulesCollection)
-          .where('type', isEqualTo: transportType)
+          .where('transportType', isEqualTo: transportType.toUpperCase())
           .where('route', isEqualTo: route)
-          .where('dateString', isEqualTo: dateString)
+          .where('isActive', isEqualTo: true)
           .limit(1)
           .get();
-      
+
       if (snapshot.docs.isEmpty) {
         // If real data doesn't exist, generate mock schedule for demo
         return _generateMockSchedule(transportType, route, date);
       }
-      
+
       final data = snapshot.docs.first.data();
       return TransportSchedule.fromJson(data);
     } catch (e) {
@@ -145,7 +167,7 @@ class TransportRepository {
       return _generateMockSchedule(transportType, route, date);
     }
   }
-  
+
   /// Gets available vehicle rentals.
   Future<List<Map<String, dynamic>>> getRentals({
     required String location,
@@ -158,18 +180,18 @@ class TransportRepository {
           .collection(_rentalsCollection)
           .where('location', isEqualTo: location)
           .where('isAvailable', isEqualTo: true);
-      
+
       if (vehicleType != null) {
         query = query.where('vehicleType', isEqualTo: vehicleType);
       }
-      
+
       final snapshot = await query.get();
-      
+
       if (snapshot.docs.isEmpty) {
         // Return mock data for demonstration
         return _generateMockRentals(location, vehicleType);
       }
-      
+
       final rentals = snapshot.docs.map((doc) {
         final data = doc.data();
         return {
@@ -181,12 +203,12 @@ class TransportRepository {
           'pricePerDay': data['pricePerDay'] ?? 0.0,
           'location': data['location'] ?? 'Unknown',
           'imageUrl': data['imageUrl'] ?? '',
-          'features': data['features'] ?? <String>[],
+          'features': List<String>.from(data['features'] ?? []),
           'rating': data['rating'] ?? 4.0,
           'reviewCount': data['reviewCount'] ?? 0,
         };
       }).toList();
-      
+
       return rentals;
     } catch (e) {
       debugPrint('Error getting rentals: $e');
@@ -194,7 +216,7 @@ class TransportRepository {
       return _generateMockRentals(location, vehicleType);
     }
   }
-  
+
   /// Books a rental vehicle.
   Future<String> bookRental({
     required String rentalId,
@@ -204,36 +226,46 @@ class TransportRepository {
   }) async {
     try {
       final bookingId = _uuid.v4();
-      
+
       await _firestore.collection(_bookingsCollection).doc(bookingId).set({
         'id': bookingId,
         'rentalId': rentalId,
         'userId': userId,
-        'startDate': startDate,
-        'endDate': endDate,
+        'startDate': Timestamp.fromDate(startDate),
+        'endDate': Timestamp.fromDate(endDate),
         'status': 'confirmed',
         'totalCost': 0, // This would be calculated in a real app
         'createdAt': FieldValue.serverTimestamp(),
       });
-      
+
       return bookingId;
     } catch (e) {
       debugPrint('Error booking rental: $e');
       rethrow;
     }
   }
-  
+
   /// Checks if a location is coastal.
   bool _isCoastalLocation(String location) {
     // Simple check for coastal cities in Sri Lanka
     const coastalLocations = [
-      'colombo', 'galle', 'matara', 'bentota', 'negombo', 'trincomalee',
-      'batticaloa', 'arugam bay', 'jaffna', 'mannar', 'kalpitiya', 'tangalle'
+      'colombo',
+      'galle',
+      'matara',
+      'bentota',
+      'negombo',
+      'trincomalee',
+      'batticaloa',
+      'arugam bay',
+      'jaffna',
+      'mannar',
+      'kalpitiya',
+      'tangalle'
     ];
-    
+
     return coastalLocations.contains(location.toLowerCase());
   }
-  
+
   /// Checks if distance between locations is long enough for flights.
   bool _isLongDistance(String from, String to) {
     // Define location pairs that are considered long distance
@@ -244,17 +276,17 @@ class TransportRepository {
       ['kandy', 'jaffna'],
       ['galle', 'jaffna'],
     ];
-    
+
     // Normalize inputs
     final normalizedFrom = from.toLowerCase();
     final normalizedTo = to.toLowerCase();
-    
+
     // Check if this pair is in our long distance list (in either direction)
     return longDistancePairs.any((pair) =>
         (pair[0] == normalizedFrom && pair[1] == normalizedTo) ||
         (pair[0] == normalizedTo && pair[1] == normalizedFrom));
   }
-  
+
   /// Generates mock transport schedule for demonstration.
   TransportSchedule _generateMockSchedule(
     String transportTypeStr,
@@ -266,188 +298,342 @@ class TransportRepository {
     if (routeParts.length != 2) {
       throw Exception('Invalid route format: $route');
     }
-    
+
     final origin = routeParts[0];
     final destination = routeParts[1];
-    
+
     // Determine transport type
     final transportType = _parseTransportType(transportTypeStr);
-    
-    // Create schedule entries based on transport type
-    final entries = <ScheduleEntry>[];
-    
+
+    // Create schedule days and times based on transport type
+    final scheduleDays = <ScheduleDay>[];
+
+    // Add schedules for each day of the week (1-7)
+    for (int weekday = 1; weekday <= 7; weekday++) {
+      final times = <ScheduleTime>[];
+
+      // Generate different schedule patterns based on transport type
+      switch (transportType) {
+        case TransportType.bus:
+          // Buses run more frequently
+          for (int hour = 6; hour <= 20; hour += 2) {
+            times.add(ScheduleTime(
+              departureTime: '${hour.toString().padLeft(2, '0')}:00',
+              arrivalTime:
+                  '${(hour + 3).toString().padLeft(2, '0')}:00', // 3-hour trip
+              platformInfo: 'Platform ${1 + (hour % 3)}',
+              isExpress: hour % 4 == 0, // Some are express
+              availableSeats: {'economy': 25, 'business': 5},
+              intermediateStops: ['Midway Town', 'Junction Point'],
+            ));
+          }
+          break;
+
+        case TransportType.train:
+          // Trains run less frequently
+          for (int hour = 7; hour <= 19; hour += 4) {
+            times.add(ScheduleTime(
+              departureTime: '${hour.toString().padLeft(2, '0')}:30',
+              arrivalTime:
+                  '${(hour + 2).toString().padLeft(2, '0')}:30', // 2-hour trip
+              platformInfo: 'Platform ${1 + (hour % 5)}',
+              isExpress:
+                  hour == 7 || hour == 15, // Morning and afternoon express
+              availableSeats: {'economy': 60, 'business': 20, 'first': 10},
+              intermediateStops: [
+                'Central Station',
+                'Mountain Pass',
+                'River Crossing'
+              ],
+            ));
+          }
+          break;
+
+        case TransportType.ferry:
+          // Ferries run even less frequently
+          for (int hour = 8; hour <= 16; hour += 4) {
+            times.add(ScheduleTime(
+              departureTime: '${hour.toString().padLeft(2, '0')}:00',
+              arrivalTime:
+                  '${(hour + 1).toString().padLeft(2, '0')}:30', // 1.5-hour trip
+              platformInfo: 'Dock ${1 + (hour % 2)}',
+              isExpress: false,
+              availableSeats: {'standard': 80, 'premium': 20},
+              specialNotes: 'Weather dependent service',
+            ));
+          }
+          break;
+
+        case TransportType.flight:
+          // Only a few flights per day
+          final flightHours = [8, 12, 17];
+          for (final hour in flightHours) {
+            times.add(ScheduleTime(
+              departureTime: '${hour.toString().padLeft(2, '0')}:00',
+              arrivalTime:
+                  '${(hour + 1).toString().padLeft(2, '0')}:15', // 1.25-hour flight
+              platformInfo: 'Gate ${1 + (hour % 10)}',
+              isExpress: true,
+              availableSeats: {'economy': 120, 'business': 20, 'first': 10},
+              specialNotes: hour == 8
+                  ? 'Morning breakfast served'
+                  : 'Complimentary snack',
+            ));
+          }
+          break;
+
+        case TransportType.uber:
+          // Uber schedules are on-demand, but add a few typical options
+          final uberHours = [7, 12, 17, 21];
+          for (final hour in uberHours) {
+            times.add(ScheduleTime(
+              departureTime: '${hour.toString().padLeft(2, '0')}:00',
+              arrivalTime:
+                  '${(hour + 1).toString().padLeft(2, '0')}:00', // Typical 1-hour estimated trip
+              isExpress: true,
+              availableSeats: {'economy': 4, 'premium': 2},
+              specialNotes: 'On-demand service',
+            ));
+          }
+          break;
+
+        case TransportType.tuktuk:
+          // Tuk-tuk service
+          for (int hour = 7; hour <= 21; hour += 3) {
+            times.add(ScheduleTime(
+              departureTime: '${hour.toString().padLeft(2, '0')}:00',
+              arrivalTime:
+                  '${(hour + 1).toString().padLeft(2, '0')}:00', // 1-hour trip
+              isExpress: false,
+              availableSeats: {'standard': 3},
+              specialNotes: 'Local driver with knowledge of the area',
+            ));
+          }
+          break;
+
+        case TransportType.car:
+          // Car rentals or taxis
+          for (int hour = 6; hour <= 22; hour += 4) {
+            times.add(ScheduleTime(
+              departureTime: '${hour.toString().padLeft(2, '0')}:00',
+              arrivalTime:
+                  '${(hour + 1).toString().padLeft(2, '0')}:30', // 1.5-hour trip
+              isExpress: true,
+              availableSeats: {'standard': 4, 'luxury': 3},
+              specialNotes: 'Professional driver, AC vehicle',
+            ));
+          }
+          break;
+        case TransportType.pickMe:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case TransportType.taxi:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case TransportType.tuk:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case TransportType.rental:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case TransportType.walk:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case TransportType.all:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case TransportType.motorcycle:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case TransportType.luxury:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+      }
+
+      // Add this day to the schedule
+      scheduleDays.add(ScheduleDay(
+        weekday: weekday,
+        scheduleTimes: times,
+      ));
+    }
+
+    // Determine available classes and prices based on transport type
+    Map<String, double> classPrices = {};
+    List<String> availableClasses = [];
+    Map<String, String> classFacilities = {};
+
     switch (transportType) {
       case TransportType.bus:
-        // Buses typically run frequently throughout the day
-        for (int hour = 6; hour <= 20; hour += 2) {
-          entries.add(_createMockScheduleEntry(
-            transportType,
-            date,
-            hour,
-            hour + 3, // 3 hour trip
-            origin,
-            destination,
-            15.0, // LKR 15
-          ));
-        }
+        availableClasses = ['economy', 'business'];
+        classPrices = {'economy': 15.0, 'business': 30.0};
+        classFacilities = {
+          'economy': 'Standard seating',
+          'business': 'Extra legroom, Wi-Fi, Power outlets',
+        };
         break;
-      
+
       case TransportType.train:
-        // Trains might have fewer departures
-        for (int hour = 7; hour <= 19; hour += 4) {
-          entries.add(_createMockScheduleEntry(
-            transportType,
-            date,
-            hour,
-            hour + 2, // 2 hour trip
-            origin,
-            destination,
-            25.0, // LKR 25
-          ));
-        }
+        availableClasses = ['economy', 'business', 'first'];
+        classPrices = {'economy': 25.0, 'business': 50.0, 'first': 75.0};
+        classFacilities = {
+          'economy': 'Standard seating',
+          'business': 'Extra legroom, Wi-Fi, Power outlets',
+          'first':
+              'Premium seating, Meals included, Wi-Fi, Power outlets, Priority boarding',
+        };
         break;
-      
+
       case TransportType.ferry:
-        // Ferries might have even fewer departures
-        for (int hour = 8; hour <= 16; hour += 4) {
-          entries.add(_createMockScheduleEntry(
-            transportType,
-            date,
-            hour,
-            hour + 1, // 1 hour trip
-            origin,
-            destination,
-            30.0, // LKR 30
-          ));
-        }
+        availableClasses = ['standard', 'premium'];
+        classPrices = {'standard': 20.0, 'premium': 35.0};
+        classFacilities = {
+          'standard': 'Indoor seating',
+          'premium': 'Outdoor deck access, Refreshments included',
+        };
         break;
-      
+
       case TransportType.flight:
-        // Flights might have only a few departures
-        entries.add(_createMockScheduleEntry(
-          transportType,
-          date,
-          8,
-          9, // 1 hour flight
-          origin,
-          destination,
-          150.0, // LKR 150
-        ));
-        
-        entries.add(_createMockScheduleEntry(
-          transportType,
-          date,
-          14,
-          15, // 1 hour flight
-          origin,
-          destination,
-          180.0, // LKR 180
-        ));
-        
-        entries.add(_createMockScheduleEntry(
-          transportType,
-          date,
-          19,
-          20, // 1 hour flight
-          origin,
-          destination,
-          120.0, // LKR 120
-        ));
+        availableClasses = ['economy', 'business', 'first'];
+        classPrices = {'economy': 120.0, 'business': 250.0, 'first': 400.0};
+        classFacilities = {
+          'economy': 'Standard seating, In-flight entertainment',
+          'business':
+              'Extra legroom, Priority boarding, Meals, In-flight entertainment',
+          'first':
+              'Premium seating, Priority boarding, Premium meals, Premium entertainment',
+        };
         break;
+
+      case TransportType.uber:
+        availableClasses = ['economy', 'premium'];
+        classPrices = {'economy': 40.0, 'premium': 60.0};
+        classFacilities = {
+          'economy': 'Standard vehicle',
+          'premium': 'Premium vehicle, Refreshments, Wi-Fi',
+        };
+        break;
+
+      case TransportType.tuktuk:
+        availableClasses = ['standard'];
+        classPrices = {'standard': 15.0};
+        classFacilities = {
+          'standard': 'Traditional tuk-tuk experience',
+        };
+        break;
+
+      case TransportType.car:
+        availableClasses = ['standard', 'luxury'];
+        classPrices = {'standard': 50.0, 'luxury': 100.0};
+        classFacilities = {
+          'standard': 'Sedan with AC',
+          'luxury': 'Premium car with amenities',
+        };
+        break;
+      case TransportType.pickMe:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.taxi:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.tuk:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.rental:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.walk:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.all:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.motorcycle:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.luxury:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
-    
+
+    // Generate unique ID
+    final id = _uuid.v4();
+
+    // Get operator name based on transport type
+    String operatorName = _getOperatorForTransportType(transportType);
+
+    // Create the TransportSchedule object
     return TransportSchedule(
-      id: _uuid.v4(),
-      type: transportType,
+      id: id,
+      transportId: '${transportType.toString().split('.').last}-$id',
+      transportType: transportType,
       origin: origin,
       destination: destination,
-      date: DateTime(date.year, date.month, date.day),
-      entries: entries,
+      route: route,
+      scheduleDays: scheduleDays,
+      availableClasses: availableClasses,
+      classPrices: classPrices,
+      classFacilities: classFacilities,
+      operator: operatorName,
+      operatorContact: '+94 11 ${100000 + (id.hashCode % 899999)}',
+      isActive: true,
+      lastUpdated: DateTime.now(),
     );
   }
-  
-  /// Creates a mock schedule entry.
-  ScheduleEntry _createMockScheduleEntry(
-    TransportType transportType,
-    DateTime date,
-    int departureHour,
-    int arrivalHour,
-    String origin,
-    String destination,
-    double fare,
-  ) {
-    final departureTime = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      departureHour,
-      0,
-    );
-    
-    final arrivalTime = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      arrivalHour,
-      0,
-    );
-    
-    String carrier;
-    String routeNumber;
-    List<String> stops;
-    
-    switch (transportType) {
+
+  /// Get a mock operator name based on transport type
+  String _getOperatorForTransportType(TransportType type) {
+    switch (type) {
       case TransportType.bus:
-        carrier = 'Sri Lanka Transport Board';
-        routeNumber = 'Route ${100 + departureHour}';
-        stops = ['$origin Central', 'Midway Town', '$destination Central'];
-        break;
-      
+        return 'Sri Lanka Transport Board';
       case TransportType.train:
-        carrier = 'Sri Lanka Railways';
-        routeNumber = 'Express ${1000 + departureHour}';
-        stops = ['$origin Station', 'Junction Point', '$destination Station'];
-        break;
-      
+        return 'Sri Lanka Railways';
       case TransportType.ferry:
-        carrier = 'Sri Lanka Ferry Service';
-        routeNumber = 'Ferry $departureHour';
-        stops = ['$origin Port', '$destination Port'];
-        break;
-      
+        return 'Sri Lanka Ferry Service';
       case TransportType.flight:
-        carrier = 'SriLankan Airlines';
-        routeNumber = 'UL${100 + departureHour}';
-        stops = ['$origin Airport', '$destination Airport'];
-        break;
+        return 'SriLankan Airlines';
+      case TransportType.uber:
+        return 'Uber Sri Lanka';
+      case TransportType.tuktuk:
+        return 'Local Tuk-tuk Association';
+      case TransportType.car:
+        return 'Lanka Car Service';
+      case TransportType.pickMe:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.taxi:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.tuk:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.rental:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.walk:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.all:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.motorcycle:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.luxury:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
-    
-    return ScheduleEntry(
-      id: _uuid.v4(),
-      departureTime: departureTime,
-      arrivalTime: arrivalTime,
-      carrier: carrier,
-      routeNumber: routeNumber,
-      fare: fare,
-      stops: stops,
-      availableSeats: 20 + (departureHour % 10),
-      additionalInfo: {
-        'platform': transportType == TransportType.train ? 'Platform ${1 + (departureHour % 3)}' : null,
-        'gate': transportType == TransportType.flight ? 'Gate ${(departureHour % 10) + 1}' : null,
-        'amenities': _generateAmenities(transportType),
-      },
-    );
   }
-  
+
   /// Generates mock rentals for demonstration.
-  List<Map<String, dynamic>> _generateMockRentals(String location, String? vehicleType) {
+  List<Map<String, dynamic>> _generateMockRentals(
+      String location, String? vehicleType) {
     final rentals = <Map<String, dynamic>>[];
-    
+
     // If vehicleType is specified, only generate that type
     final vehicleTypes = vehicleType != null
         ? [vehicleType]
         : ['car', 'motorbike', 'scooter', 'bicycle'];
-    
+
     for (final type in vehicleTypes) {
       switch (type) {
         case 'car':
@@ -480,7 +666,7 @@ class TransportRepository {
             },
           ]);
           break;
-        
+
         case 'motorbike':
           rentals.addAll([
             {
@@ -511,7 +697,7 @@ class TransportRepository {
             },
           ]);
           break;
-        
+
         case 'scooter':
           rentals.addAll([
             {
@@ -542,7 +728,7 @@ class TransportRepository {
             },
           ]);
           break;
-        
+
         case 'bicycle':
           rentals.addAll([
             {
@@ -575,10 +761,10 @@ class TransportRepository {
           break;
       }
     }
-    
+
     return rentals;
   }
-  
+
   /// Generates amenities based on transport type.
   List<String> _generateAmenities(TransportType type) {
     switch (type) {
@@ -590,9 +776,39 @@ class TransportRepository {
         return ['Seating Area', 'Refreshments', 'Viewing Deck'];
       case TransportType.flight:
         return ['In-flight Meal', 'Entertainment System', 'Baggage Allowance'];
+      case TransportType.uber:
+        return ['AC', 'Bottled Water', 'Phone Charging'];
+      case TransportType.tuktuk:
+        return ['Open Air Experience', 'Local Guide', 'Flexible Stops'];
+      case TransportType.car:
+        return ['AC', 'Professional Driver', 'Bottled Water', 'WiFi'];
+      case TransportType.pickMe:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.taxi:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.tuk:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.rental:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.walk:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.all:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.motorcycle:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case TransportType.luxury:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
-  
+
   /// Parses a string to TransportType enum.
   TransportType _parseTransportType(String type) {
     switch (type.toLowerCase()) {
@@ -604,6 +820,12 @@ class TransportRepository {
         return TransportType.ferry;
       case 'flight':
         return TransportType.flight;
+      case 'uber':
+        return TransportType.uber;
+      case 'tuktuk':
+        return TransportType.tuktuk;
+      case 'car':
+        return TransportType.car;
       default:
         throw ArgumentError('Invalid transport type: $type');
     }

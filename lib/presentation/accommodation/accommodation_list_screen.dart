@@ -6,8 +6,6 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:intl/intl.dart';
 
 import '../../bloc/accommodation/accommodation_bloc.dart';
-import 'package:taprobana_trails/bloc/accommodation/accommodation_event.dart';
-import '../../bloc/accommodation/accommodation_state.dart';
 import '../../data/models/accommodation.dart';
 import '../../core/utils/date_utils.dart' as app_date_utils;
 import '../../core/api/api_client.dart';
@@ -24,7 +22,7 @@ class AccommodationListScreen extends StatefulWidget {
   final DateTime? checkInDate;
   final DateTime? checkOutDate;
   final int? guestCount;
-  
+
   const AccommodationListScreen({
     super.key,
     this.destinationId,
@@ -35,7 +33,8 @@ class AccommodationListScreen extends StatefulWidget {
   });
 
   @override
-  State<AccommodationListScreen> createState() => _AccommodationListScreenState();
+  State<AccommodationListScreen> createState() =>
+      _AccommodationListScreenState();
 }
 
 class _AccommodationListScreenState extends State<AccommodationListScreen> {
@@ -47,63 +46,64 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
   int _selectedGuestCount = 2;
   Map<String, dynamic> _filters = {};
   bool _isSearching = false;
-  
+
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
-    _selectedCheckInDate = widget.checkInDate ?? DateTime.now().add(const Duration(days: 1));
-    _selectedCheckOutDate = widget.checkOutDate ?? DateTime.now().add(const Duration(days: 3));
+    _selectedCheckInDate =
+        widget.checkInDate ?? DateTime.now().add(const Duration(days: 1));
+    _selectedCheckOutDate =
+        widget.checkOutDate ?? DateTime.now().add(const Duration(days: 3));
     _selectedGuestCount = widget.guestCount ?? 2;
-    
+
     _accommodationBloc = BlocProvider.of<AccommodationBloc>(context);
-    
+
     // Load initial data
     if (widget.destinationId != null) {
-      _accommodationBloc.add(AccommodationFetchByDestination(
-        destinationId: widget.destinationId!,
-        checkInDate: _selectedCheckInDate,
-        checkOutDate: _selectedCheckOutDate,
-        guestCount: _selectedGuestCount,
+      _accommodationBloc.add(LoadAccommodations(
+        destinationId: widget.destinationId,
       ));
     } else {
-      _accommodationBloc.add(AccommodationFetchAll(
-        checkInDate: _selectedCheckInDate,
-        checkOutDate: _selectedCheckOutDate,
-        guestCount: _selectedGuestCount,
-      ));
+      _accommodationBloc.add(LoadAccommodations());
     }
-    
+
     // Add scroll listener for pagination if needed
     _scrollController.addListener(_onScroll);
   }
-  
+
   @override
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
-  
+
   void _onScroll() {
     if (_isBottom && !_isSearching) {
-      _accommodationBloc.add(AccommodationFetchMore());
+      // If you need pagination, you might need to create a specific event for it
+      // For now, we reload all accommodations with the same parameters
+      if (widget.destinationId != null) {
+        _accommodationBloc.add(LoadAccommodations(
+          destinationId: widget.destinationId,
+        ));
+      }
     }
   }
-  
+
   bool get _isBottom {
     if (!_scrollController.hasClients) return false;
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.offset;
     return currentScroll >= (maxScroll * 0.9);
   }
-  
+
   Future<void> _selectDateRange(BuildContext context) async {
     final initialDateRange = DateTimeRange(
       start: _selectedCheckInDate!,
       end: _selectedCheckOutDate!,
     );
-    
+
     final pickedDateRange = await showDateRangePicker(
       context: context,
       initialDateRange: initialDateRange,
@@ -116,7 +116,8 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
               primary: Theme.of(context).primaryColor,
               onPrimary: Colors.white,
               surface: Theme.of(context).cardColor,
-              onSurface: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
+              onSurface:
+                  Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
             ),
             dialogBackgroundColor: Theme.of(context).scaffoldBackgroundColor,
           ),
@@ -124,18 +125,18 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
         );
       },
     );
-    
+
     if (pickedDateRange != null) {
       setState(() {
         _selectedCheckInDate = pickedDateRange.start;
         _selectedCheckOutDate = pickedDateRange.end;
       });
-      
+
       // Refresh the search with new dates
       _searchAccommodations();
     }
   }
-  
+
   void _showFilterModal() {
     showModalBottomSheet(
       context: context,
@@ -152,48 +153,53 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
       ),
     );
   }
-  
+
   void _searchAccommodations() {
     setState(() {
       _isSearching = true;
     });
-    
+
     final searchText = _searchController.text.trim();
-    
-    _accommodationBloc.add(AccommodationSearch(
-      destinationId: widget.destinationId,
-      checkInDate: _selectedCheckInDate,
-      checkOutDate: _selectedCheckOutDate,
-      guestCount: _selectedGuestCount,
-      query: searchText.isNotEmpty ? searchText : null,
-      amenities: _filters['amenities'],
-      minPrice: _filters['minPrice'],
-      maxPrice: _filters['maxPrice'],
-      accommodationType: _filters['accommodationType'],
-      minRating: _filters['minRating'],
+
+    // Use FilterAccommodations instead of SearchAccommodations
+    // since our bloc shows FilterAccommodations is handling filters
+    _accommodationBloc.add(FilterAccommodations(
+      filters: {
+        'destinationId': widget.destinationId,
+        'checkInDate': _selectedCheckInDate,
+        'checkOutDate': _selectedCheckOutDate,
+        'guestCount': _selectedGuestCount,
+        'query': searchText.isNotEmpty ? searchText : null,
+        'amenities': _filters['amenities'],
+        'minPrice': _filters['minPrice'],
+        'maxPrice': _filters['maxPrice'],
+        'accommodationType': _filters['accommodationType'],
+        'minRating': _filters['minRating'],
+      },
     ));
-    
+
     setState(() {
       _isSearching = false;
     });
   }
-  
+
   String get _stayDuration {
     if (_selectedCheckInDate == null || _selectedCheckOutDate == null) {
       return '';
     }
-    
-    final nights = _selectedCheckOutDate!.difference(_selectedCheckInDate!).inDays;
+
+    final nights =
+        _selectedCheckOutDate!.difference(_selectedCheckInDate!).inDays;
     return '$nights ${nights == 1 ? 'night' : 'nights'}';
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(
-        title: widget.destinationName != null 
-          ? 'Stays in ${widget.destinationName}'
-          : 'Find Accommodations',
+        title: widget.destinationName != null
+            ? 'Stays in ${widget.destinationName}'
+            : 'Find Accommodations',
         showBackButton: true,
         actions: [
           IconButton(
@@ -213,7 +219,7 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
       ),
     );
   }
-  
+
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -249,10 +255,10 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
       ),
     );
   }
-  
+
   Widget _buildDateAndGuestSelector() {
     final dateFormat = DateFormat('MMM d');
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
@@ -261,7 +267,8 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
             child: InkWell(
               onTap: () => _selectDateRange(context),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(8.0),
@@ -283,7 +290,8 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
           InkWell(
             onTap: () => _showGuestCountPicker(),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(8.0),
@@ -304,7 +312,7 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
       ),
     );
   }
-  
+
   void _showGuestCountPicker() {
     showModalBottomSheet(
       context: context,
@@ -368,14 +376,17 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
       },
     );
   }
-  
+
   Widget _buildAccommodationList() {
     return BlocBuilder<AccommodationBloc, AccommodationState>(
       builder: (context, state) {
         if (state is AccommodationInitial) {
           return const Center(child: CircularProgressIndicator());
-        } else if (state is AccommodationsLoading && state.accommodations.isEmpty) {
-          return _buildLoadingShimmer();
+        } else if (state is AccommodationsLoading) {
+          // Check if we have accommodations to show while loading
+          if (_getAccommodationsFromState(state).isEmpty) {
+            return _buildLoadingShimmer();
+          }
         } else if (state is AccommodationsError) {
           return Center(
             child: Column(
@@ -389,93 +400,103 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
                 const SizedBox(height: 16.0),
                 ElevatedButton(
                   onPressed: () {
-                    _accommodationBloc.add(AccommodationFetchAll());
+                    _accommodationBloc.add(LoadAccommodations());
                   },
                   child: const Text('Try Again'),
                 ),
               ],
             ),
           );
-        } else if (state is AccommodationsLoaded || state is AccommodationsLoading) {
-          final List<Accommodation> accommodations = 
-              state is AccommodationsLoaded ? state.accommodations : state.accommodations;
-          
-          if (accommodations.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.hotel, size: 64.0, color: Colors.grey),
-                  const SizedBox(height: 16.0),
-                  Text(
-                    'No accommodations found',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8.0),
-                  Text(
-                    'Try adjusting your filters or search criteria',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          }
-          
-          return RefreshIndicator(
-            onRefresh: () async {
-              _accommodationBloc.add(AccommodationFetchAll(
-                checkInDate: _selectedCheckInDate,
-                checkOutDate: _selectedCheckOutDate,
-                guestCount: _selectedGuestCount,
-              ));
-            },
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16.0),
-              itemCount: accommodations.length + (state is AccommodationsLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == accommodations.length) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-                
-                final accommodation = accommodations[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: HotelCard(
-                    accommodation: accommodation,
-                    checkInDate: _selectedCheckInDate,
-                    checkOutDate: _selectedCheckOutDate,
-                    guestCount: _selectedGuestCount,
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/hotel_details',
-                        arguments: {
-                          'accommodation': accommodation,
-                          'checkInDate': _selectedCheckInDate,
-                          'checkOutDate': _selectedCheckOutDate,
-                          'guestCount': _selectedGuestCount,
-                        },
-                      );
-                    },
-                  ),
-                );
-              },
+        }
+
+        // Get accommodations from the state
+        final List<Accommodation> accommodations =
+            _getAccommodationsFromState(state);
+
+        if (accommodations.isEmpty && state is! AccommodationsLoading) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.hotel, size: 64.0, color: Colors.grey),
+                const SizedBox(height: 16.0),
+                Text(
+                  'No accommodations found',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8.0),
+                Text(
+                  'Try adjusting your filters or search criteria',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           );
         }
-        
-        return const Center(child: CircularProgressIndicator());
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            _accommodationBloc.add(LoadAccommodations(
+              destinationId: widget.destinationId,
+            ));
+          },
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(16.0),
+            itemCount: accommodations.length +
+                (state is AccommodationsLoading ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == accommodations.length &&
+                  state is AccommodationsLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              final accommodation = accommodations[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: HotelCard(
+                  accommodation: accommodation,
+                  checkInDate: _selectedCheckInDate,
+                  checkOutDate: _selectedCheckOutDate,
+                  guestCount: _selectedGuestCount,
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/hotel_details',
+                      arguments: {
+                        'accommodation': accommodation,
+                        'checkInDate': _selectedCheckInDate,
+                        'checkOutDate': _selectedCheckOutDate,
+                        'guestCount': _selectedGuestCount,
+                      },
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        );
       },
     );
   }
-  
+
+  // Helper method to get accommodations from different states
+  // Replace your existing helper method with this implementation
+  List<Accommodation> _getAccommodationsFromState(AccommodationState state) {
+    if (state is AccommodationsLoaded) {
+      return state.accommodations;
+    } else if (state is AccommodationsLoading) {
+      return [];
+    }
+    return [];
+  }
+
   Widget _buildLoadingShimmer() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -486,7 +507,8 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
             padding: const EdgeInsets.only(bottom: 16.0),
             child: Shimmer.fromColors(
               baseColor: Theme.of(context).colorScheme.surface,
-              highlightColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+              highlightColor:
+                  Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
               child: Container(
                 height: 250.0,
                 decoration: BoxDecoration(
@@ -500,8 +522,4 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
       ),
     );
   }
-}
-
-extension on AccommodationState {
-  get accommodations => null;
 }

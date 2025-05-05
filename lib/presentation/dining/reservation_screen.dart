@@ -5,14 +5,13 @@ import 'package:intl/intl.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:lottie/lottie.dart';
+import 'package:taprobana_trails/bloc/reservation/reservation_bloc.dart';
 
 import '../../bloc/restaurant/restaurant_bloc.dart';
-import '../../bloc/reservation/reservation_bloc.dart';
 import '../../config/constants.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../data/models/restaurant.dart';
-import '../../data/models/reservation.dart';
 import '../../core/utils/connectivity.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/permissions.dart';
@@ -21,11 +20,12 @@ import '../common/widgets/buttons.dart';
 import '../common/widgets/loaders.dart';
 
 class ReservationScreen extends StatefulWidget {
-  final Restaurant restaurant;
-  
+  final Restaurant? restaurant;
+
   const ReservationScreen({
     super.key,
-    required this.restaurant,
+    this.restaurant,
+    required restaurantId,
   });
 
   @override
@@ -37,34 +37,35 @@ class _ReservationScreenState extends State<ReservationScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _specialRequestsController = TextEditingController();
-  
+  final TextEditingController _specialRequestsController =
+      TextEditingController();
+
   // Form key for validation
   final _formKey = GlobalKey<FormState>();
-  
+
   // Reservation parameters
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay(hour: 19, minute: 0); // Default 7:00 PM
   int _guestCount = 2;
   String? _selectedArea;
-  
+
   // Available times based on date selection
   List<TimeOfDay> _availableTimes = [];
-  
+
   // Loading state
   bool _isLoading = false;
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     // Generate available times for selected date
     _generateAvailableTimes();
-    
+
     // Pre-fill form with user data if available
     _prefillUserData();
   }
-  
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -73,7 +74,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
     _specialRequestsController.dispose();
     super.dispose();
   }
-  
+
   void _prefillUserData() {
     // This would typically come from your user repository or auth service
     // For this example, we'll hard-code some values
@@ -81,25 +82,25 @@ class _ReservationScreenState extends State<ReservationScreen> {
     _emailController.text = ''; // User's email would go here
     _phoneController.text = ''; // User's phone would go here
   }
-  
+
   void _generateAvailableTimes() {
     // This would typically come from the restaurant's availability API
     // For this example, we'll generate some times between opening and closing
-    
+
     // Check if the selected date is today
     final isToday = _selectedDate.year == DateTime.now().year &&
-                   _selectedDate.month == DateTime.now().month &&
-                   _selectedDate.day == DateTime.now().day;
-    
+        _selectedDate.month == DateTime.now().month &&
+        _selectedDate.day == DateTime.now().day;
+
     // Generate time slots (usually from opening time to closing time)
     // For example: 12:00, 12:30, 13:00, etc.
     List<TimeOfDay> allTimes = [];
-    
+
     // Sample opening hours: 11:00 AM to
     // 10:00 PM (22:00)
     int startHour = 11; // 11:00 AM
-    int endHour = 22;   // 10:00 PM
-    
+    int endHour = 22; // 10:00 PM
+
     // If today, don't show past times
     if (isToday) {
       final now = TimeOfDay.now();
@@ -113,7 +114,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
         return;
       }
     }
-    
+
     // Generate time slots at 30-minute intervals
     for (int hour = startHour; hour <= endHour; hour++) {
       allTimes.add(TimeOfDay(hour: hour, minute: 0));
@@ -121,29 +122,33 @@ class _ReservationScreenState extends State<ReservationScreen> {
         allTimes.add(TimeOfDay(hour: hour, minute: 30));
       }
     }
-    
+
     // Remove some slots to simulate limited availability
     // In a real app, this would come from the restaurant's availability API
     setState(() {
       _availableTimes = allTimes;
-      
+
       // If the selected time is not in available times, select the first available
       if (!_isTimeInAvailableTimes(_selectedTime)) {
-        _selectedTime = _availableTimes.isNotEmpty ? _availableTimes.first : TimeOfDay(hour: 19, minute: 0);
+        _selectedTime = _availableTimes.isNotEmpty
+            ? _availableTimes.first
+            : TimeOfDay(hour: 19, minute: 0);
       }
     });
   }
-  
+
   bool _isTimeInAvailableTimes(TimeOfDay time) {
-    return _availableTimes.any((t) => t.hour == time.hour && t.minute == time.minute);
+    return _availableTimes
+        .any((t) => t.hour == time.hour && t.minute == time.minute);
   }
-  
+
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 30)), // Allow booking up to 30 days in advance
+      lastDate: DateTime.now()
+          .add(Duration(days: 30)), // Allow booking up to 30 days in advance
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -155,28 +160,29 @@ class _ReservationScreenState extends State<ReservationScreen> {
         );
       },
     );
-    
+
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
       });
-      
+
       // Regenerate available times for new date
       _generateAvailableTimes();
     }
   }
-  
+
   String _formatTimeOfDay(TimeOfDay time) {
     final now = DateTime.now();
-    final dateTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    final dateTime =
+        DateTime(now.year, now.month, now.day, time.hour, time.minute);
     return DateFormat.jm().format(dateTime); // Format as 7:00 PM
   }
-  
+
   void _submitReservation() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    
+
     if (_availableTimes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -186,15 +192,15 @@ class _ReservationScreenState extends State<ReservationScreen> {
       );
       return;
     }
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       // Create reservation request
       final reservationRequest = ReservationRequest(
-        restaurantId: widget.restaurant.id,
+        restaurantId: widget.restaurant!.id,
         date: _selectedDate,
         time: _selectedTime,
         guestCount: _guestCount,
@@ -204,27 +210,28 @@ class _ReservationScreenState extends State<ReservationScreen> {
         specialRequests: _specialRequestsController.text,
         area: _selectedArea,
       );
-      
+
       // Submit reservation
       context.read<ReservationBloc>().add(
-        SubmitReservation(request: reservationRequest),
-      );
-      
+            SubmitReservation(request: reservationRequest),
+          );
+
       // Navigate to confirmation screen
       // In a real app, you'd wait for the bloc state to confirm success
       // For this example, we'll simulate a successful reservation
       await Future.delayed(Duration(seconds: 2)); // Simulate processing time
-      
+
       // Navigate to confirmation
       Navigator.pushReplacementNamed(
         context,
         AppRoutes.reservationConfirmation,
         arguments: ReservationConfirmationArgs(
-          restaurant: widget.restaurant,
+          restaurant: widget.restaurant!,
           date: _selectedDate,
           time: _selectedTime,
           guestCount: _guestCount,
-          reservationId: 'RES-${DateTime.now().millisecondsSinceEpoch}', // Sample ID
+          reservationId:
+              'RES-${DateTime.now().millisecondsSinceEpoch}', // Sample ID
         ),
       );
     } catch (e) {
@@ -240,185 +247,188 @@ class _ReservationScreenState extends State<ReservationScreen> {
       });
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Make a Reservation',
       ),
       body: _isLoading
-        ? Center(child: LoadingSpinner())
-        : SingleChildScrollView(
-            padding: EdgeInsets.all(16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Restaurant info card
-                  _buildRestaurantCard(),
-                  
-                  SizedBox(height: 24),
-                  
-                  // Reservation details section
-                  Text(
-                    'Reservation Details',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  
-                  // Date picker
-                  _buildDateSelector(),
-                  
-                  SizedBox(height: 24),
-                  
-                  // Time selector
-                  _buildTimeSelector(),
-                  
-                  SizedBox(height: 24),
-                  
-                  // Guest count selector
-                  _buildGuestSelector(),
-                  
-                  SizedBox(height: 24),
-                  
-                  // Seating area selector (if available)
-                  _buildAreaSelector(),
-                  
-                  SizedBox(height: 24),
-                  
-                  // Contact details section
-                  Text(
-                    'Contact Details',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  
-                  // Name field
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Full Name',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: Icon(Icons.person),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your name';
-                      }
-                      return null;
-                    },
-                  ),
-                  
-                  SizedBox(height: 16),
-                  
-                  // Email field
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: Icon(Icons.email),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  
-                  SizedBox(height: 16),
-                  
-                  // Phone field
-                  TextFormField(
-                    controller: _phoneController,
-                    decoration: InputDecoration(
-                      labelText: 'Phone Number',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: Icon(Icons.phone),
-                    ),
-                    keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your phone number';
-                      }
-                      return null;
-                    },
-                  ),
-                  
-                  SizedBox(height: 24),
-                  
-                  // Special requests
-                  TextFormField(
-                    controller: _specialRequestsController,
-                    decoration: InputDecoration(
-                      labelText: 'Special Requests (Optional)',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignLabelWithHint: true,
-                      hintText: 'e.g., Dietary restrictions, special occasions, preferred seating',
-                    ),
-                    maxLines: 3,
-                  ),
-                  
-                  SizedBox(height: 32),
-                  
-                  // Terms and privacy policy
-                  _buildTermsAndPrivacyText(),
-                  
-                  SizedBox(height: 24),
-                  
-                  // Submit button
-                  ElevatedButton(
-                    onPressed: _availableTimes.isEmpty ? null : _submitReservation,
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: Size(double.infinity, 56),
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Confirm Reservation',
-                      style: TextStyle(
-                        fontSize: 16,
+          ? Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: EdgeInsets.all(16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Restaurant info card
+                    _buildRestaurantCard(),
+
+                    SizedBox(height: 24),
+
+                    // Reservation details section
+                    Text(
+                      'Reservation Details',
+                      style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                  
-                  SizedBox(height: 40),
-                ],
+                    SizedBox(height: 16),
+
+                    // Date picker
+                    _buildDateSelector(),
+
+                    SizedBox(height: 24),
+
+                    // Time selector
+                    _buildTimeSelector(),
+
+                    SizedBox(height: 24),
+
+                    // Guest count selector
+                    _buildGuestSelector(),
+
+                    SizedBox(height: 24),
+
+                    // Seating area selector (if available)
+                    _buildAreaSelector(),
+
+                    SizedBox(height: 24),
+
+                    // Contact details section
+                    Text(
+                      'Contact Details',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+
+                    // Name field
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Full Name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your name';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    SizedBox(height: 16),
+
+                    // Email field
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your email';
+                        }
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(value)) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    SizedBox(height: 16),
+
+                    // Phone field
+                    TextFormField(
+                      controller: _phoneController,
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: Icon(Icons.phone),
+                      ),
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your phone number';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    SizedBox(height: 24),
+
+                    // Special requests
+                    TextFormField(
+                      controller: _specialRequestsController,
+                      decoration: InputDecoration(
+                        labelText: 'Special Requests (Optional)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignLabelWithHint: true,
+                        hintText:
+                            'e.g., Dietary restrictions, special occasions, preferred seating',
+                      ),
+                      maxLines: 3,
+                    ),
+
+                    SizedBox(height: 32),
+
+                    // Terms and privacy policy
+                    _buildTermsAndPrivacyText(),
+
+                    SizedBox(height: 24),
+
+                    // Submit button
+                    ElevatedButton(
+                      onPressed:
+                          _availableTimes.isEmpty ? null : _submitReservation,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: Size(double.infinity, 56),
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Confirm Reservation',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 40),
+                  ],
+                ),
               ),
             ),
-          ),
     );
   }
-  
+
   Widget _buildRestaurantCard() {
     final theme = Theme.of(context);
     final restaurant = widget.restaurant;
-    
+
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -431,7 +441,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: CachedNetworkImage(
-                imageUrl: restaurant.images.first,
+                imageUrl: restaurant!.images.first,
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
@@ -452,16 +462,16 @@ class _ReservationScreenState extends State<ReservationScreen> {
                 ),
               ),
             ),
-            
+
             SizedBox(width: 16),
-            
+
             // Restaurant details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    restaurant.name,
+                    restaurant!.name,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -510,12 +520,12 @@ class _ReservationScreenState extends State<ReservationScreen> {
       ),
     );
   }
-  
+
   Widget _buildDateSelector() {
     final theme = Theme.of(context);
     final formattedDate = DateFormat.yMMMMd().format(_selectedDate);
     final dayName = DateFormat.EEEE().format(_selectedDate);
-    
+
     return InkWell(
       onTap: _selectDate,
       borderRadius: BorderRadius.circular(12),
@@ -561,10 +571,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
       ),
     );
   }
-  
+
   Widget _buildTimeSelector() {
     final theme = Theme.of(context);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -575,7 +585,6 @@ class _ReservationScreenState extends State<ReservationScreen> {
           ),
         ),
         SizedBox(height: 12),
-        
         if (_availableTimes.isEmpty)
           Container(
             padding: EdgeInsets.all(16),
@@ -625,9 +634,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
               itemCount: _availableTimes.length,
               itemBuilder: (context, index) {
                 final time = _availableTimes[index];
-                final isSelected = time.hour == _selectedTime.hour && 
-                                 time.minute == _selectedTime.minute;
-                
+                final isSelected = time.hour == _selectedTime.hour &&
+                    time.minute == _selectedTime.minute;
+
                 return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -639,34 +648,34 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
                       color: isSelected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.surface,
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isSelected
-                          ? Colors.transparent
-                          : theme.colorScheme.outline,
+                            ? Colors.transparent
+                            : theme.colorScheme.outline,
                       ),
                       boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: theme.colorScheme.primary.withOpacity(0.3),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ]
-                        : null,
+                          ? [
+                              BoxShadow(
+                                color:
+                                    theme.colorScheme.primary.withOpacity(0.3),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: Center(
                       child: Text(
                         _formatTimeOfDay(time),
                         style: TextStyle(
                           color: isSelected
-                            ? Colors.white
-                            : theme.colorScheme.onSurface,
-                          fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                              ? Colors.white
+                              : theme.colorScheme.onSurface,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -678,10 +687,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
       ],
     );
   }
-  
+
   Widget _buildGuestSelector() {
     final theme = Theme.of(context);
-    
+
     return Row(
       children: [
         Expanded(
@@ -717,15 +726,15 @@ class _ReservationScreenState extends State<ReservationScreen> {
               IconButton(
                 icon: Icon(Icons.remove),
                 onPressed: _guestCount > 1
-                  ? () {
-                      setState(() {
-                        _guestCount--;
-                      });
-                    }
-                  : null,
+                    ? () {
+                        setState(() {
+                          _guestCount--;
+                        });
+                      }
+                    : null,
                 color: _guestCount > 1
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface.withOpacity(0.3),
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface.withOpacity(0.3),
               ),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12),
@@ -740,15 +749,15 @@ class _ReservationScreenState extends State<ReservationScreen> {
               IconButton(
                 icon: Icon(Icons.add),
                 onPressed: _guestCount < 20
-                  ? () {
-                      setState(() {
-                        _guestCount++;
-                      });
-                    }
-                  : null,
+                    ? () {
+                        setState(() {
+                          _guestCount++;
+                        });
+                      }
+                    : null,
                 color: _guestCount < 20
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface.withOpacity(0.3),
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface.withOpacity(0.3),
               ),
             ],
           ),
@@ -756,10 +765,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
       ],
     );
   }
-  
+
   Widget _buildAreaSelector() {
     final theme = Theme.of(context);
-    
+
     // This would come from the restaurant's available areas
     // For this example, we'll hard-code some options
     final areas = [
@@ -768,7 +777,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
       'Bar',
       'Private Room',
     ];
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -780,7 +789,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
         ),
         SizedBox(height: 4),
         Text(
-          'We'll try to accommodate your preference',
+          "We'll try to accommodate your preference",
           style: TextStyle(
             color: theme.colorScheme.onSurface.withOpacity(0.7),
             fontSize: 14,
@@ -792,7 +801,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
           runSpacing: 12,
           children: areas.map((area) {
             final isSelected = _selectedArea == area;
-            
+
             return GestureDetector(
               onTap: () {
                 setState(() {
@@ -803,24 +812,22 @@ class _ReservationScreenState extends State<ReservationScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.surface,
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isSelected
-                      ? Colors.transparent
-                      : theme.colorScheme.outline,
+                        ? Colors.transparent
+                        : theme.colorScheme.outline,
                   ),
                 ),
                 child: Text(
                   area,
                   style: TextStyle(
-                    color: isSelected
-                      ? Colors.white
-                      : theme.colorScheme.onSurface,
-                    fontWeight: isSelected
-                      ? FontWeight.bold
-                      : FontWeight.normal,
+                    color:
+                        isSelected ? Colors.white : theme.colorScheme.onSurface,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ),
@@ -830,10 +837,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
       ],
     );
   }
-  
+
   Widget _buildTermsAndPrivacyText() {
     final theme = Theme.of(context);
-    
+
     return Text(
       'By confirming your reservation, you agree to our Terms of Service and Privacy Policy. '
       'A confirmation will be sent to your email.',
@@ -858,7 +865,7 @@ class ReservationRequest {
   final String phone;
   final String specialRequests;
   final String? area;
-  
+
   ReservationRequest({
     required this.restaurantId,
     required this.date,
@@ -878,7 +885,7 @@ class ReservationConfirmationArgs {
   final TimeOfDay time;
   final int guestCount;
   final String reservationId;
-  
+
   ReservationConfirmationArgs({
     required this.restaurant,
     required this.date,

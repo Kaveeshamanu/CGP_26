@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter/src/material/badge.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -28,14 +27,14 @@ class User extends Equatable {
   final String id;
   final String email;
   final String? phoneNumber;
-  final String displayName;
+  final String? displayName;
   final String? profilePhotoUrl;
   final bool isEmailVerified;
   final bool isPhoneVerified;
-  final AuthProvider authProvider;
+  final AuthProvider? authProvider;
   final UserRole role;
-  final DateTime createdAt;
-  final DateTime lastLoginAt;
+  final DateTime? createdAt;
+  final DateTime? lastLoginAt;
   final String? fcmToken;
   final List<String> favoriteDestinations;
   final List<String> favoriteAccommodations;
@@ -48,6 +47,16 @@ class User extends Equatable {
   final String? countryCode;
   final String? currencyCode;
 
+  // Added fields from constructor parameters
+  final String? name;
+  final String? profileImageUrl;
+  final DateTime? memberSince;
+  final int? travelPoints;
+  final int? completedTrips;
+  final int? wishlistedDestinations;
+  final int? reviewsCount;
+  final List<UserBadge>? badges;
+
   const User({
     required this.id,
     required this.email,
@@ -56,10 +65,10 @@ class User extends Equatable {
     this.profilePhotoUrl,
     required this.isEmailVerified,
     this.isPhoneVerified = false,
-    required this.authProvider,
+    this.authProvider,
     this.role = UserRole.traveler,
     required this.createdAt,
-    required this.lastLoginAt,
+    this.lastLoginAt,
     this.fcmToken,
     this.favoriteDestinations = const [],
     this.favoriteAccommodations = const [],
@@ -70,7 +79,15 @@ class User extends Equatable {
     this.isProfileComplete = false,
     this.languageCode = 'en',
     this.countryCode,
-    this.currencyCode = 'USD', required String name, required String profileImageUrl, required DateTime memberSince, required int travelPoints, required int completedTrips, required int wishlistedDestinations, required int reviewsCount, required List<Badge> badges,
+    this.currencyCode = 'USD',
+    this.name,
+    this.profileImageUrl,
+    this.memberSince,
+    this.travelPoints,
+    this.completedTrips,
+    this.wishlistedDestinations,
+    this.reviewsCount,
+    this.badges,
   });
 
   /// Creates a User object from a JSON map
@@ -90,6 +107,14 @@ class User extends Equatable {
       authProvider: AuthProvider.email,
       createdAt: DateTime.now(),
       lastLoginAt: DateTime.now(),
+      name: 'Guest User',
+      profileImageUrl: '',
+      memberSince: DateTime.now(),
+      travelPoints: 0,
+      completedTrips: 0,
+      wishlistedDestinations: 0,
+      reviewsCount: 0,
+      badges: const [],
     );
   }
 
@@ -117,6 +142,14 @@ class User extends Equatable {
     String? languageCode,
     String? countryCode,
     String? currencyCode,
+    String? name,
+    String? profileImageUrl,
+    DateTime? memberSince,
+    int? travelPoints,
+    int? completedTrips,
+    int? wishlistedDestinations,
+    int? reviewsCount,
+    List<UserBadge>? badges,
   }) {
     return User(
       id: id ?? this.id,
@@ -132,7 +165,8 @@ class User extends Equatable {
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       fcmToken: fcmToken ?? this.fcmToken,
       favoriteDestinations: favoriteDestinations ?? this.favoriteDestinations,
-      favoriteAccommodations: favoriteAccommodations ?? this.favoriteAccommodations,
+      favoriteAccommodations:
+          favoriteAccommodations ?? this.favoriteAccommodations,
       favoriteRestaurants: favoriteRestaurants ?? this.favoriteRestaurants,
       preferences: preferences ?? this.preferences,
       settingsData: settingsData ?? this.settingsData,
@@ -141,6 +175,15 @@ class User extends Equatable {
       languageCode: languageCode ?? this.languageCode,
       countryCode: countryCode ?? this.countryCode,
       currencyCode: currencyCode ?? this.currencyCode,
+      name: name ?? this.name,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      memberSince: memberSince ?? this.memberSince,
+      travelPoints: travelPoints ?? this.travelPoints,
+      completedTrips: completedTrips ?? this.completedTrips,
+      wishlistedDestinations:
+          wishlistedDestinations ?? this.wishlistedDestinations,
+      reviewsCount: reviewsCount ?? this.reviewsCount,
+      badges: badges ?? this.badges,
     );
   }
 
@@ -161,15 +204,15 @@ class User extends Equatable {
 
   /// Get user's initials for avatar fallback
   String get initials {
-    if (displayName.isEmpty) return '';
-    
-    final nameParts = displayName.trim().split(' ');
+    if (displayName!.isEmpty) return '';
+
+    final nameParts = displayName!.trim().split(' ');
     if (nameParts.length >= 2) {
       return '${nameParts.first[0]}${nameParts.last[0]}'.toUpperCase();
     } else if (nameParts.length == 1 && nameParts.first.isNotEmpty) {
       return nameParts.first[0].toUpperCase();
     }
-    
+
     return '';
   }
 
@@ -187,48 +230,41 @@ class User extends Equatable {
 
   @override
   List<Object?> get props => [
-    id,
-    email,
-    phoneNumber,
-    displayName,
-    profilePhotoUrl,
-    isEmailVerified,
-    isPhoneVerified,
-    authProvider,
-    role,
-    createdAt,
-    lastLoginAt,
-    fcmToken,
-    favoriteDestinations,
-    favoriteAccommodations,
-    favoriteRestaurants,
-    preferences,
-    settingsData,
-    isActive,
-    isProfileComplete,
-    languageCode,
-    countryCode,
-    currencyCode,
-  ];
-
-  get badges => null;
-
-  get completedTrips => null;
-
-  DateTime get memberSince => null;
-
-  get travelPoints => null;
-
-  get wishlistedDestinations => null;
-
-  get reviewsCount => null;
-
-  get profileImageUrl => null;
-
-  String get name => null;
+        id,
+        email,
+        phoneNumber,
+        displayName,
+        profilePhotoUrl,
+        isEmailVerified,
+        isPhoneVerified,
+        authProvider,
+        role,
+        createdAt,
+        lastLoginAt,
+        fcmToken,
+        favoriteDestinations,
+        favoriteAccommodations,
+        favoriteRestaurants,
+        preferences,
+        settingsData,
+        isActive,
+        isProfileComplete,
+        languageCode,
+        countryCode,
+        currencyCode,
+        name,
+        profileImageUrl,
+        memberSince,
+        travelPoints,
+        completedTrips,
+        wishlistedDestinations,
+        reviewsCount,
+        badges,
+      ];
 
   @override
-  String toString() => 'User(id: $id, name: $displayName, email: $email, role: $role)';
+  String toString() =>
+      'User(id: $id, name: $displayName, email: $email, role: $role)';
 }
 
 /// User Profile model with additional profile information
@@ -273,8 +309,9 @@ class UserProfile extends Equatable {
   });
 
   /// Creates a UserProfile object from a JSON map
-  factory UserProfile.fromJson(Map<String, dynamic> json) => _$UserProfileFromJson(json);
-  
+  factory UserProfile.fromJson(Map<String, dynamic> json) =>
+      _$UserProfileFromJson(json);
+
   /// Converts the UserProfile object to a JSON map
   Map<String, dynamic> toJson() => _$UserProfileToJson(this);
 
@@ -321,21 +358,24 @@ class UserProfile extends Equatable {
 
   /// Check if profile has basic info completed
   bool get hasBasicInfoCompleted {
-    return bio != null && dateOfBirth != null && gender != null && 
-           nationality != null && (languages?.isNotEmpty ?? false);
+    return bio != null &&
+        dateOfBirth != null &&
+        gender != null &&
+        nationality != null &&
+        (languages?.isNotEmpty ?? false);
   }
 
   /// Get age from date of birth
   int? get age {
     if (dateOfBirth == null) return null;
-    
+
     final today = DateTime.now();
     final birthDate = dateOfBirth!;
     int age = today.year - birthDate.year;
-    
+
     final currentMonth = today.month;
     final birthMonth = birthDate.month;
-    
+
     if (birthMonth > currentMonth) {
       age--;
     } else if (currentMonth == birthMonth) {
@@ -345,30 +385,30 @@ class UserProfile extends Equatable {
         age--;
       }
     }
-    
+
     return age;
   }
 
   @override
   List<Object?> get props => [
-    userId,
-    bio,
-    dateOfBirth,
-    gender,
-    nationality,
-    passportNumber,
-    languages,
-    emergencyContact,
-    interests,
-    travelPreferences,
-    addresses,
-    socialProfiles,
-    reviewCount,
-    averageRating,
-    travelStats,
-    completedTrips,
-    badges,
-  ];
+        userId,
+        bio,
+        dateOfBirth,
+        gender,
+        nationality,
+        passportNumber,
+        languages,
+        emergencyContact,
+        interests,
+        travelPreferences,
+        addresses,
+        socialProfiles,
+        reviewCount,
+        averageRating,
+        travelStats,
+        completedTrips,
+        badges,
+      ];
 }
 
 /// User Address model
@@ -401,7 +441,8 @@ class UserAddress extends Equatable {
   });
 
   /// Creates a UserAddress object from a JSON map
-  factory UserAddress.fromJson(Map<String, dynamic> json) => _$UserAddressFromJson(json);
+  factory UserAddress.fromJson(Map<String, dynamic> json) =>
+      _$UserAddressFromJson(json);
 
   /// Converts the UserAddress object to a JSON map
   Map<String, dynamic> toJson() => _$UserAddressToJson(this);
@@ -443,18 +484,18 @@ class UserAddress extends Equatable {
 
   @override
   List<Object?> get props => [
-    id,
-    label,
-    street,
-    unit,
-    city,
-    state,
-    postalCode,
-    country,
-    latitude,
-    longitude,
-    isDefault,
-  ];
+        id,
+        label,
+        street,
+        unit,
+        city,
+        state,
+        postalCode,
+        country,
+        latitude,
+        longitude,
+        isDefault,
+      ];
 }
 
 /// User Badge model
@@ -481,20 +522,21 @@ class UserBadge extends Equatable {
   });
 
   /// Creates a UserBadge object from a JSON map
-  factory UserBadge.fromJson(Map<String, dynamic> json) => _$UserBadgeFromJson(json);
+  factory UserBadge.fromJson(Map<String, dynamic> json) =>
+      _$UserBadgeFromJson(json);
 
   /// Converts the UserBadge object to a JSON map
   Map<String, dynamic> toJson() => _$UserBadgeToJson(this);
 
   @override
   List<Object?> get props => [
-    id,
-    name,
-    description,
-    iconUrl,
-    awardedAt,
-    category,
-    level,
-    criteria,
-  ];
+        id,
+        name,
+        description,
+        iconUrl,
+        awardedAt,
+        category,
+        level,
+        criteria,
+      ];
 }

@@ -10,8 +10,6 @@ import 'package:share_plus/share_plus.dart';
 import 'dart:math' show cos, sqrt, asin;
 
 import '../../bloc/accommodation/accommodation_bloc.dart';
-import '../../bloc/accommodation/accommodation_event.dart';
-import '../../bloc/accommodation/accommodation_state.dart';
 import '../../data/models/accommodation.dart';
 import '../../core/utils/date_utils.dart' as app_date_utils;
 import '../../core/location/map_helper.dart';
@@ -21,17 +19,18 @@ import 'widgets/amenity_list.dart';
 import 'widgets/room_selector.dart';
 
 class HotelDetailsScreen extends StatefulWidget {
-  final Accommodation accommodation;
+  final Accommodation? accommodation;
   final DateTime? checkInDate;
   final DateTime? checkOutDate;
   final int guestCount;
 
   const HotelDetailsScreen({
     super.key,
-    required this.accommodation,
+    this.accommodation,
     this.checkInDate,
     this.checkOutDate,
-    this.guestCount = 2, required hotelId,
+    this.guestCount = 2,
+    required hotelId,
   });
 
   @override
@@ -41,13 +40,15 @@ class HotelDetailsScreen extends StatefulWidget {
 class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
   late AccommodationBloc _accommodationBloc;
   int _currentImageIndex = 0;
-  final CarouselController _carouselController = CarouselController();
+  final CarouselSliderController _carouselController =
+      CarouselSliderController();
   late DateTime _checkInDate;
   late DateTime _checkOutDate;
   late int _guestCount;
   bool _isAvailable = true;
   String? _errorMessage;
   bool _isFavorite = false;
+  final List<Map<String, dynamic>> _reviews = [];
 
   // Expandable sections
   bool _isDescriptionExpanded = false;
@@ -60,10 +61,12 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
   void initState() {
     super.initState();
     _accommodationBloc = BlocProvider.of<AccommodationBloc>(context);
-    _checkInDate = widget.checkInDate ?? DateTime.now().add(const Duration(days: 1));
-    _checkOutDate = widget.checkOutDate ?? DateTime.now().add(const Duration(days: 3));
+    _checkInDate =
+        widget.checkInDate ?? DateTime.now().add(const Duration(days: 1));
+    _checkOutDate =
+        widget.checkOutDate ?? DateTime.now().add(const Duration(days: 3));
     _guestCount = widget.guestCount;
-    
+
     // Load additional data
     _loadAccommodationDetails();
     _checkFavoriteStatus();
@@ -71,31 +74,38 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
   }
 
   void _loadAccommodationDetails() {
-    _accommodationBloc.add(AccommodationFetchDetails(
-      accommodationId: widget.accommodation.id,
+    _accommodationBloc.add(LoadAccommodationDetails(
+      accommodationId: widget.accommodation?.id ?? '',
     ));
   }
 
   Future<void> _checkFavoriteStatus() async {
-    _accommodationBloc.add(AccommodationCheckFavorite(
-      accommodationId: widget.accommodation.id,
-    ));
+    setState(() {
+      _isFavorite = widget.accommodation?.isSaved ?? false;
+    });
   }
 
   void _toggleFavorite() {
     setState(() {
       _isFavorite = !_isFavorite;
     });
-    
-    _accommodationBloc.add(AccommodationToggleFavorite(
-      accommodation: widget.accommodation,
-      isFavorite: _isFavorite,
-    ));
+
+    if (_isFavorite) {
+      _accommodationBloc.add(SaveAccommodation(
+        userId: 'currentUserId', // Replace with actual user ID
+        accommodationId: widget.accommodation?.id ?? '',
+      ));
+    } else {
+      _accommodationBloc.add(UnsaveAccommodation(
+        userId: 'currentUserId', // Replace with actual user ID
+        accommodationId: widget.accommodation?.id ?? '',
+      ));
+    }
   }
 
   void _checkAvailability() {
     _accommodationBloc.add(AccommodationCheckAvailability(
-      accommodationId: widget.accommodation.id,
+      accommodationId: widget.accommodation?.id,
       checkInDate: _checkInDate,
       checkOutDate: _checkOutDate,
     ));
@@ -106,7 +116,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
       start: _checkInDate,
       end: _checkOutDate,
     );
-    
+
     final pickedDateRange = await showDateRangePicker(
       context: context,
       initialDateRange: initialDateRange,
@@ -119,7 +129,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
               primary: Theme.of(context).primaryColor,
               onPrimary: Colors.white,
               surface: Theme.of(context).cardColor,
-              onSurface: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
+              onSurface:
+                  Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
             ),
             dialogBackgroundColor: Theme.of(context).scaffoldBackgroundColor,
           ),
@@ -127,25 +138,25 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
         );
       },
     );
-    
+
     if (pickedDateRange != null) {
       setState(() {
         _checkInDate = pickedDateRange.start;
         _checkOutDate = pickedDateRange.end;
       });
-      
+
       _checkAvailability();
     }
   }
 
   void _showGuestCountPicker() {
-    final maxGuests = widget.accommodation.maxGuests ?? 10;
-    
+    final maxGuests = widget.accommodation?.maxGuests ?? 10;
+
     showModalBottomSheet(
       context: context,
       builder: (context) {
         int tempGuestCount = _guestCount;
-        
+
         return StatefulBuilder(
           builder: (context, setState) {
             return Container(
@@ -213,9 +224,9 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
   }
 
   void _shareAccommodation() {
-    final accommodationName = widget.accommodation.name;
+    final accommodationName = widget.accommodation?.name;
     final nightCount = _checkOutDate.difference(_checkInDate).inDays;
-    
+
     Share.share(
       'Check out $accommodationName on Taprobana Trails! I\'m planning a $nightCount-night stay from ${DateFormat('MMM d, yyyy').format(_checkInDate)} to ${DateFormat('MMM d, yyyy').format(_checkOutDate)}.',
       subject: 'Check out this amazing place in Sri Lanka!',
@@ -226,13 +237,14 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
     if (!_isAvailable) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('This accommodation is not available for the selected dates.'),
+          content: Text(
+              'This accommodation is not available for the selected dates.'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-    
+
     Navigator.pushNamed(
       context,
       '/booking',
@@ -250,20 +262,18 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
     return Scaffold(
       body: BlocConsumer<AccommodationBloc, AccommodationState>(
         listener: (context, state) {
-          if (state is AccommodationFavoriteStatus) {
-            setState(() {
-              _isFavorite = state.isFavorite;
-            });
+          if (state is AccommodationDetailsLoaded) {
           } else if (state is AccommodationAvailabilityChecked) {
             setState(() {
               _isAvailable = state.isAvailable;
               if (!state.isAvailable) {
-                _errorMessage = 'This accommodation is not available for the selected dates.';
+                _errorMessage =
+                    'This accommodation is not available for the selected dates.';
               } else {
                 _errorMessage = null;
               }
             });
-          } else if (state is AccommodationError) {
+          } else if (state is AccommodationsError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -295,7 +305,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                     _buildPoliciesSection(),
                     _buildDivider(),
                     // Host information if applicable
-                    if (widget.accommodation.hostName != null)
+                    if (widget.accommodation?.hostName != null)
                       _buildHostSection(),
                     const SizedBox(height: 100.0), // Space for bottom bar
                   ],
@@ -314,7 +324,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
       expandedHeight: 0.0,
       floating: true,
       pinned: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.9),
+      backgroundColor:
+          Theme.of(context).scaffoldBackgroundColor.withOpacity(0.9),
       leading: IconButton(
         icon: Container(
           padding: const EdgeInsets.all(8.0),
@@ -371,7 +382,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
               });
             },
           ),
-          items: widget.accommodation.imageUrls.map((imageUrl) {
+          items: widget.accommodation?.imageUrls.map((imageUrl) {
             return Builder(
               builder: (BuildContext context) {
                 return CachedNetworkImage(
@@ -380,7 +391,10 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                   width: double.infinity,
                   placeholder: (context, url) => Shimmer.fromColors(
                     baseColor: Theme.of(context).colorScheme.surface,
-                    highlightColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                    highlightColor: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.1),
                     child: Container(
                       color: Colors.white,
                     ),
@@ -400,7 +414,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
           right: 0,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: widget.accommodation.imageUrls.asMap().entries.map((entry) {
+            children:
+                widget.accommodation?.imageUrls.asMap().entries.map((entry) {
               return Container(
                 width: 8.0,
                 height: 8.0,
@@ -421,25 +436,25 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
 
   Widget _buildAccommodationHeader() {
     final currencyFormat = NumberFormat.currency(
-      symbol: widget.accommodation.currencySymbol ?? '\$',
+      symbol: widget.accommodation?.currencySymbol ?? '\$',
     );
-    
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.accommodation.name,
+            widget.accommodation!.name,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 8.0),
           Row(
             children: [
               RatingBar.builder(
-                initialRating: widget.accommodation.rating,
+                initialRating: widget.accommodation!.rating,
                 minRating: 1,
                 direction: Axis.horizontal,
                 allowHalfRating: true,
@@ -454,7 +469,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
               ),
               const SizedBox(width: 4.0),
               Text(
-                '(${widget.accommodation.reviewCount} reviews)',
+                '(${widget.accommodation?.reviewCount} reviews)',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -466,7 +481,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
               const SizedBox(width: 4.0),
               Expanded(
                 child: Text(
-                  widget.accommodation.address,
+                  widget.accommodation!.address,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
@@ -480,10 +495,10 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      currencyFormat.format(widget.accommodation.basePrice),
+                      currencyFormat.format(widget.accommodation?.basePrice),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     Text(
                       'per night',
@@ -492,18 +507,19 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                   ],
                 ),
               ),
-              if (widget.accommodation.weeklyDiscount != null || 
-                  widget.accommodation.monthlyDiscount != null)
+              if (widget.accommodation?.weeklyDiscount != null ||
+                  widget.accommodation?.monthlyDiscount != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0, vertical: 6.0),
                   decoration: BoxDecoration(
                     color: Colors.green.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20.0),
                   ),
                   child: Text(
-                    widget.accommodation.monthlyDiscount != null
-                        ? 'Up to ${widget.accommodation.monthlyDiscount}% off'
-                        : '${widget.accommodation.weeklyDiscount}% weekly discount',
+                    widget.accommodation?.monthlyDiscount != null
+                        ? 'Up to ${widget.accommodation?.monthlyDiscount}% off'
+                        : '${widget.accommodation?.weeklyDiscount}% weekly discount',
                     style: const TextStyle(
                       color: Colors.green,
                       fontWeight: FontWeight.bold,
@@ -519,7 +535,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
 
   Widget _buildDateAndGuestSelector() {
     final dateFormat = DateFormat('MMM d');
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
@@ -528,8 +544,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
           Text(
             'Your stay',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 12.0),
           Row(
@@ -538,7 +554,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                 child: InkWell(
                   onTap: () => _selectDateRange(context),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0, vertical: 12.0),
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(8.0),
@@ -560,9 +577,16 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                               ),
                               Text(
                                 '${_checkOutDate.difference(_checkInDate).inDays} nights',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color
+                                          ?.withOpacity(0.7),
+                                    ),
                               ),
                             ],
                           ),
@@ -576,7 +600,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
               InkWell(
                 onTap: () => _showGuestCountPicker(),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0, vertical: 12.0),
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(8.0),
@@ -638,49 +663,54 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                 Text(
                   'Description',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 Icon(
-                  _isDescriptionExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  _isDescriptionExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                 ),
               ],
             ),
           ),
-          if (_isDescriptionExpanded || (widget.accommodation.description.length ?? 0) < 300)
+          if (_isDescriptionExpanded ||
+              (widget.accommodation?.description.length ?? 0) < 300)
             Padding(
               padding: const EdgeInsets.only(top: 12.0),
               child: Text(
-                widget.accommodation.description ?? 'No description provided.',
+                widget.accommodation?.description ?? 'No description provided.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             )
-          else Padding(
-            padding: const EdgeInsets.only(top: 12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${widget.accommodation.description.substring(0, 300)}...',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _isDescriptionExpanded = true;
-                    });
-                  },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    alignment: Alignment.centerLeft,
+          else
+            Padding(
+              padding: const EdgeInsets.only(top: 12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${widget.accommodation?.description.substring(0, 300)}...',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                  child: const Text('Read more'),
-                ),
-              ],
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _isDescriptionExpanded = true;
+                      });
+                    },
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      alignment: Alignment.centerLeft,
+                    ),
+                    child: const Text('Read more'),
+                  ),
+                ],
+              ),
             ),
-          ),
           const SizedBox(height: 8.0),
-          if (widget.accommodation.features != null && widget.accommodation.features!.isNotEmpty)
+          if (widget.accommodation?.features != null &&
+              widget.accommodation?.features!.isNotEmpty)
             Wrap(
               spacing: 16.0,
               runSpacing: 12.0,
@@ -695,7 +725,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
   }
 
   List<Widget> _buildFeatureItems() {
-    final features = widget.accommodation.features ?? [];
+    final features = widget.accommodation?.features ?? [];
     final icons = {
       'Entire place': Icons.home,
       'Self check-in': Icons.vpn_key,
@@ -718,7 +748,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
       'Elevator': Icons.elevator,
       'Workspace': Icons.laptop,
     };
-    
+
     return features.take(5).map((feature) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -755,11 +785,13 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                 Text(
                   'Amenities',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 Icon(
-                  _isAmenitiesExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  _isAmenitiesExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                 ),
               ],
             ),
@@ -768,7 +800,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
               child: AmenityList(
-                amenities: widget.accommodation.amenities ?? [],
+                amenities: widget.accommodation?.amenities ?? [],
               ),
             )
           else
@@ -782,13 +814,12 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                     runSpacing: 12.0,
                     children: [
                       // Show only first 6 amenities when collapsed
-                      ...(widget.accommodation.amenities ?? [])
+                      ...(widget.accommodation?.amenities ?? [])
                           .take(6)
-                          .map((amenity) => _buildAmenityItem(amenity))
-                          ,
+                          .map((amenity) => _buildAmenityItem(amenity)),
                     ],
                   ),
-                  if ((widget.accommodation.amenities.length ?? 0) > 6)
+                  if ((widget.accommodation?.amenities.length ?? 0) > 6)
                     TextButton(
                       onPressed: () {
                         setState(() {
@@ -800,7 +831,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                         alignment: Alignment.centerLeft,
                       ),
                       child: Text(
-                        'Show all ${widget.accommodation.amenities.length} amenities',
+                        'Show all ${widget.accommodation?.amenities.length} amenities',
                       ),
                     ),
                 ],
@@ -833,7 +864,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
       'Carbon monoxide alarm': Icons.co2,
       'Smoke alarm': Icons.smoke_free,
     };
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -868,11 +899,13 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                 Text(
                   'Location',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 Icon(
-                  _isLocationExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  _isLocationExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                 ),
               ],
             ),
@@ -891,20 +924,20 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
             child: GoogleMap(
               initialCameraPosition: CameraPosition(
                 target: LatLng(
-                  widget.accommodation.latitude,
-                  widget.accommodation.longitude,
+                  widget.accommodation!.latitude,
+                  widget.accommodation!.longitude,
                 ),
                 zoom: 14.0,
               ),
               markers: {
                 Marker(
-                  markerId: MarkerId(widget.accommodation.id),
+                  markerId: MarkerId(widget.accommodation!.id),
                   position: LatLng(
-                    widget.accommodation.latitude,
-                    widget.accommodation.longitude,
+                    widget.accommodation!.latitude,
+                    widget.accommodation!.longitude,
                   ),
                   infoWindow: InfoWindow(
-                    title: widget.accommodation.name,
+                    title: widget.accommodation?.name,
                   ),
                 ),
               },
@@ -915,11 +948,12 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
               myLocationButtonEnabled: false,
             ),
           ),
-          if (_isLocationExpanded && widget.accommodation.locationDescription != null)
+          if (_isLocationExpanded &&
+              widget.accommodation?.locationDescription != null)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
               child: Text(
-                widget.accommodation.locationDescription!,
+                widget.accommodation?.locationDescription!,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -932,13 +966,14 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                   Text(
                     'Getting around',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   const SizedBox(height: 8.0),
                   // Show transportation options if available
-                  if (widget.accommodation.transportationOptions != null)
-                    ...widget.accommodation.transportationOptions!.map((option) {
+                  if (widget.accommodation?.transportationOptions != null)
+                    ...widget.accommodation?.transportationOptions!
+                        .map((option) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Row(
@@ -970,11 +1005,11 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
 
   Widget _buildReviewsSection(AccommodationState state) {
     List<Map<String, dynamic>> reviews = [];
-    
+
     if (state is AccommodationDetailsLoaded) {
-      reviews = state.reviews;
+      reviews = _reviews;
     }
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
@@ -994,8 +1029,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                     Text(
                       'Reviews',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(width: 8.0),
                     Row(
@@ -1003,7 +1038,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                         const Icon(Icons.star, color: Colors.amber, size: 18.0),
                         const SizedBox(width: 4.0),
                         Text(
-                          '${widget.accommodation.rating.toStringAsFixed(1)} (${widget.accommodation.reviewCount})',
+                          '${widget.accommodation?.rating.toStringAsFixed(1)} (${widget.accommodation?.reviewCount})',
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],
@@ -1011,7 +1046,9 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                   ],
                 ),
                 Icon(
-                  _isReviewsExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  _isReviewsExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                 ),
               ],
             ),
@@ -1041,8 +1078,7 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                   // Show top reviews
                   ...reviews
                       .take(_isReviewsExpanded ? reviews.length : 3)
-                      .map((review) => _buildReviewItem(review))
-                      ,
+                      .map((review) => _buildReviewItem(review)),
                   if (!_isReviewsExpanded && reviews.length > 3)
                     TextButton(
                       onPressed: () {
@@ -1076,25 +1112,26 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
       'Check-in': 0,
       'Value': 0,
     };
-    
+
     if (reviews.isNotEmpty) {
       for (var review in reviews) {
         if (review['ratingCategories'] != null) {
           final categories = review['ratingCategories'] as Map<String, dynamic>;
           for (var entry in categories.entries) {
             if (ratingCategories.containsKey(entry.key)) {
-              ratingCategories[entry.key] = ratingCategories[entry.key]! + (entry.value as num).toDouble();
+              ratingCategories[entry.key] = ratingCategories[entry.key]! +
+                  (entry.value as num).toDouble();
             }
           }
         }
       }
-      
+
       // Calculate averages
       for (var key in ratingCategories.keys) {
         ratingCategories[key] = ratingCategories[key]! / reviews.length;
       }
     }
-    
+
     return Wrap(
       spacing: 16.0,
       runSpacing: 8.0,
@@ -1131,10 +1168,10 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
   }
 
   Widget _buildReviewItem(Map<String, dynamic> review) {
-    final reviewDate = review['createdAt'] != null 
-        ? DateTime.tryParse(review['createdAt'] as String) 
+    final reviewDate = review['createdAt'] != null
+        ? DateTime.tryParse(review['createdAt'] as String)
         : null;
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -1153,8 +1190,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                 CircleAvatar(
                   radius: 16.0,
                   child: Text(
-                    (review['userName'] as String).isNotEmpty 
-                        ? (review['userName'] as String)[0].toUpperCase() 
+                    (review['userName'] as String).isNotEmpty
+                        ? (review['userName'] as String)[0].toUpperCase()
                         : 'G',
                   ),
                 ),
@@ -1165,8 +1202,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                   Text(
                     review['userName'] as String? ?? 'Guest',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   if (reviewDate != null)
                     Text(
@@ -1205,11 +1242,13 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                 Text(
                   'Policies',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 Icon(
-                  _isPoliciesExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  _isPoliciesExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                 ),
               ],
             ),
@@ -1220,23 +1259,28 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildPolicyItem('Check-in', widget.accommodation.checkInTime ?? '14:00'),
-                  _buildPolicyItem('Check-out', widget.accommodation.checkOutTime ?? '12:00'),
-                  if (widget.accommodation.cancellationPolicy != null)
-                    _buildPolicyItem('Cancellation', widget.accommodation.cancellationPolicy!),
-                  if (widget.accommodation.houseRules != null && widget.accommodation.houseRules!.isNotEmpty)
+                  _buildPolicyItem(
+                      'Check-in', widget.accommodation?.checkInTime ?? '14:00'),
+                  _buildPolicyItem('Check-out',
+                      widget.accommodation?.checkOutTime ?? '12:00'),
+                  if (widget.accommodation?.cancellationPolicy != null)
+                    _buildPolicyItem('Cancellation',
+                        widget.accommodation?.cancellationPolicy!),
+                  if (widget.accommodation?.houseRules != null &&
+                      widget.accommodation?.houseRules!.isNotEmpty)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 16.0),
                         Text(
                           'House Rules',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                         ),
                         const SizedBox(height: 8.0),
-                        ...widget.accommodation.houseRules!.map((rule) {
+                        ...widget.accommodation?.houseRules!.map((rule) {
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 4.0),
                             child: Row(
@@ -1262,8 +1306,12 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildPolicyItem('Check-in', widget.accommodation.checkInTime ?? '14:00', compact: true),
-                  _buildPolicyItem('Check-out', widget.accommodation.checkOutTime ?? '12:00', compact: true),
+                  _buildPolicyItem(
+                      'Check-in', widget.accommodation?.checkInTime ?? '14:00',
+                      compact: true),
+                  _buildPolicyItem('Check-out',
+                      widget.accommodation?.checkOutTime ?? '12:00',
+                      compact: true),
                 ],
               ),
             ),
@@ -1272,7 +1320,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
     );
   }
 
-  Widget _buildPolicyItem(String title, String content, {bool compact = false}) {
+  Widget _buildPolicyItem(String title, String content,
+      {bool compact = false}) {
     return Padding(
       padding: EdgeInsets.only(bottom: compact ? 0.0 : 16.0),
       child: Column(
@@ -1281,8 +1330,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
           Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: compact ? FontWeight.normal : FontWeight.bold,
-            ),
+                  fontWeight: compact ? FontWeight.normal : FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 4.0),
           Text(
@@ -1301,18 +1350,18 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Hosted by ${widget.accommodation.hostName}',
+            'Hosted by ${widget.accommodation?.hostName}',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 16.0),
           Row(
             children: [
-              if (widget.accommodation.hostPhotoUrl != null)
+              if (widget.accommodation?.hostPhotoUrl != null)
                 CircleAvatar(
                   backgroundImage: CachedNetworkImageProvider(
-                    widget.accommodation.hostPhotoUrl!,
+                    widget.accommodation?.hostPhotoUrl!,
                   ),
                   radius: 24.0,
                 )
@@ -1320,8 +1369,9 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                 CircleAvatar(
                   radius: 24.0,
                   child: Text(
-                    widget.accommodation.hostName != null && widget.accommodation.hostName!.isNotEmpty
-                        ? widget.accommodation.hostName![0].toUpperCase()
+                    widget.accommodation?.hostName != null &&
+                            widget.accommodation?.hostName!.isNotEmpty
+                        ? widget.accommodation?.hostName![0].toUpperCase()
                         : 'H',
                   ),
                 ),
@@ -1330,14 +1380,14 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (widget.accommodation.hostSince != null)
+                    if (widget.accommodation?.hostSince != null)
                       Text(
-                        'Host since ${DateFormat('MMMM yyyy').format(widget.accommodation.hostSince!)}',
+                        'Host since ${DateFormat('MMMM yyyy').format(widget.accommodation?.hostSince!)}',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
-                    if (widget.accommodation.hostResponseRate != null)
+                    if (widget.accommodation?.hostResponseRate != null)
                       Text(
-                        'Response rate: ${widget.accommodation.hostResponseRate}%',
+                        'Response rate: ${widget.accommodation?.hostResponseRate}%',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                   ],
@@ -1345,11 +1395,11 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
               ),
             ],
           ),
-          if (widget.accommodation.hostDescription != null)
+          if (widget.accommodation?.hostDescription != null)
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
               child: Text(
-                widget.accommodation.hostDescription!,
+                widget.accommodation?.hostDescription!,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -1360,10 +1410,10 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
 
   Widget _buildBottomBar() {
     final currencyFormat = NumberFormat.currency(
-      symbol: widget.accommodation.currencySymbol ?? '\$',
+      symbol: widget.accommodation?.currencySymbol ?? '\$',
     );
     final nights = _checkOutDate.difference(_checkInDate).inDays;
-    
+
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -1384,13 +1434,13 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${currencyFormat.format(widget.accommodation.basePrice)} / night',
+                  '${currencyFormat.format(widget.accommodation?.basePrice)} / night',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 Text(
-                  '$nights nights: ${currencyFormat.format(widget.accommodation.basePrice * nights)}',
+                  '$nights nights: ${currencyFormat.format(widget.accommodation?.basePrice * nights)}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -1401,7 +1451,8 @@ class _HotelDetailsScreenState extends State<HotelDetailsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.0),
               ),

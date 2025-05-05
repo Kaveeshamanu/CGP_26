@@ -4,10 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
-
-import '../../bloc/deals/deals_bloc.dart';
-import '../../bloc/deals/deals_event.dart';
-import '../../bloc/deals/deals_state.dart';
+import 'package:taprobana_trails/bloc/deals/deals_bloc.dart';
 import '../../data/models/user.dart';
 import '../../core/utils/connectivity.dart';
 import '../common/widgets/app_bar.dart';
@@ -28,7 +25,8 @@ class DealsScreen extends StatefulWidget {
   State<DealsScreen> createState() => _DealsScreenState();
 }
 
-class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStateMixin {
+class _DealsScreenState extends State<DealsScreen>
+    with SingleTickerProviderStateMixin {
   late DealsBloc _dealsBloc;
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
@@ -66,7 +64,8 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
     // Set initial category if provided
     if (widget.categoryFilter != null) {
       final categoryIndex = _dealCategories.indexWhere(
-        (category) => category.toLowerCase() == widget.categoryFilter?.toLowerCase(),
+        (category) =>
+            category.toLowerCase() == widget.categoryFilter?.toLowerCase(),
       );
       if (categoryIndex != -1) {
         _selectedCategoryIndex = categoryIndex;
@@ -85,10 +84,10 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
   }
 
   void _loadDeals() {
-    final category = _selectedCategoryIndex == 0 
-        ? null 
+    final category = _selectedCategoryIndex == 0
+        ? null
         : _dealCategories[_selectedCategoryIndex];
-    
+
     _dealsBloc.add(DealsRequested(
       category: category,
       searchQuery: _currentQuery.isEmpty ? null : _currentQuery,
@@ -199,7 +198,8 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
                       boxShadow: [
                         if (isSelected)
                           BoxShadow(
-                            color: Theme.of(context).primaryColor.withOpacity(0.4),
+                            color:
+                                Theme.of(context).primaryColor.withOpacity(0.4),
                             blurRadius: 8.0,
                             offset: const Offset(0, 2),
                           ),
@@ -217,7 +217,8 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
                 Text(
                   _dealCategories[index],
                   style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
                     color: isSelected
                         ? Theme.of(context).primaryColor
                         : Theme.of(context).textTheme.bodyMedium?.color,
@@ -299,7 +300,7 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
         }
 
         // Get deals from state and sort them
-        final deals = state is DealsLoaded 
+        final deals = state is DealsLoaded
             ? _sortDeals(state.deals, sortBy)
             : state is DealsLoading
                 ? _sortDeals(state.deals, sortBy)
@@ -321,7 +322,7 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
                 // Loyalty program card at the top
                 return _buildLoyaltyProgramCard();
               }
-              
+
               if (index == deals.length + 1) {
                 // Loading indicator at the bottom if still loading
                 return const Center(
@@ -335,11 +336,21 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
               // Adjust index for the deals (because of loyalty card)
               final dealIndex = index - 1;
               final deal = deals[dealIndex];
-              
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: DealCard(
-                  dealData: deal,
+                  id: deal['id'] as String,
+                  imageUrl: deal['imageUrl'] as String,
+                  title: deal['title'] as String,
+                  description: deal['description'] as String,
+                  discount: deal['discount'] as double,
+                  validUntil: deal['validUntil'] as DateTime,
+                  provider: deal['provider'] as String,
+                  destinationId: deal['destinationId'] as String,
+                  category: deal['category'] as String,
+                  featured: deal['featured'] as bool? ?? false,
+                  promoCode: deal['promoCode'] as String?,
                   onTap: () {
                     Navigator.pushNamed(
                       context,
@@ -367,8 +378,8 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
             colors: [
               Theme.of(context).primaryColor,
               Theme.of(context).primaryColor.withRed(
-                Theme.of(context).primaryColor.red - 40,
-              ),
+                    Theme.of(context).primaryColor.red - 40,
+                  ),
             ],
           ),
           borderRadius: BorderRadius.circular(12.0),
@@ -404,10 +415,13 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
                         children: [
                           Text(
                             'Loyalty Program',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                           const SizedBox(height: 4.0),
                           const Text(
@@ -443,7 +457,8 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
       message = 'No deals found matching "$_currentQuery"';
     } else if (_selectedCategoryIndex != 0) {
       iconData = _categoryIcons[_selectedCategoryIndex];
-      message = 'No deals available in ${_dealCategories[_selectedCategoryIndex]}';
+      message =
+          'No deals available in ${_dealCategories[_selectedCategoryIndex]}';
     } else {
       iconData = Icons.local_offer;
       message = 'No deals available at the moment';
@@ -493,11 +508,11 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
   }
 
   List<Map<String, dynamic>> _sortDeals(
-    List<Map<String, dynamic>> deals, 
+    List<Map<String, dynamic>> deals,
     String sortBy,
   ) {
     final sortedDeals = List<Map<String, dynamic>>.from(deals);
-    
+
     switch (sortBy) {
       case 'featured':
         sortedDeals.sort((a, b) {
@@ -506,7 +521,7 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
           if (aFeatured != bFeatured) {
             return aFeatured ? -1 : 1;
           }
-          
+
           final aPopularity = a['popularity'] as int? ?? 0;
           final bPopularity = b['popularity'] as int? ?? 0;
           return bPopularity.compareTo(aPopularity);
@@ -527,7 +542,7 @@ class _DealsScreenState extends State<DealsScreen> with SingleTickerProviderStat
         });
         break;
     }
-    
+
     return sortedDeals;
   }
 }

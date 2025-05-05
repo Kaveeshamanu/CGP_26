@@ -32,6 +32,7 @@ import 'package:taprobana_trails/presentation/safety/emergency_screen.dart';
 import 'package:taprobana_trails/presentation/profile/profile_screen.dart';
 import 'package:taprobana_trails/presentation/profile/settings_screen.dart';
 import 'package:taprobana_trails/presentation/notifications/notification_center_screen.dart';
+import 'package:taprobana_trails/presentation/auth/forgot_password_screen.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -71,8 +72,7 @@ class AppRoutes {
   static String dealDetails = '/deal-details';
   static String restaurantReservation = '/restaurant-reservation';
   static String reservationConfirmation = '/reservation-confirmation';
-  
-  
+
   // Prevent instantiation
   AppRoutes._();
 }
@@ -82,28 +82,32 @@ class AppRouter {
     switch (settings.name) {
       case AppRoutes.splash:
         return MaterialPageRoute(builder: (_) => const SplashScreen());
-      
+
       case AppRoutes.onboarding:
         return MaterialPageRoute(builder: (_) => const OnboardingScreen());
-      
+
       case AppRoutes.login:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
-      
+
       case AppRoutes.register:
-        return MaterialPageRoute(builder: (_) => const RegisterScreen());
-      
+        return MaterialPageRoute(
+            builder: (_) => RegisterScreen(
+                  onLoginPressed: () {},
+                ));
+
       case AppRoutes.profileSetup:
         return MaterialPageRoute(builder: (_) => const ProfileSetupScreen());
-      
+
       case AppRoutes.forgotPassword:
         return MaterialPageRoute(builder: (_) => const ForgotPasswordScreen());
-      
+
       case AppRoutes.home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
-      
+
       case AppRoutes.destinationDiscovery:
-        return MaterialPageRoute(builder: (_) => const DestinationDiscoveryScreen());
-      
+        return MaterialPageRoute(
+            builder: (_) => const DestinationDiscoveryScreen());
+
       case AppRoutes.destinationDetails:
         final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
@@ -111,13 +115,13 @@ class AppRouter {
             destinationId: args['destinationId'],
           ),
         );
-      
+
       case AppRoutes.maps:
         return MaterialPageRoute(builder: (_) => const MapScreen());
-      
+
       case AppRoutes.arMode:
         return MaterialPageRoute(builder: (_) => const ARModeScreen());
-      
+
       case AppRoutes.accommodationList:
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
@@ -125,7 +129,7 @@ class AppRouter {
             destinationId: args?['destinationId'],
           ),
         );
-      
+
       case AppRoutes.hotelDetails:
         final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
@@ -133,7 +137,7 @@ class AppRouter {
             hotelId: args['hotelId'],
           ),
         );
-      
+
       case AppRoutes.booking:
         final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
@@ -142,7 +146,7 @@ class AppRouter {
             roomType: args['roomType'],
           ),
         );
-      
+
       case AppRoutes.restaurantList:
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
@@ -150,7 +154,7 @@ class AppRouter {
             destinationId: args?['destinationId'],
           ),
         );
-      
+
       case AppRoutes.restaurantDetails:
         final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
@@ -158,7 +162,7 @@ class AppRouter {
             restaurantId: args['restaurantId'],
           ),
         );
-      
+
       case AppRoutes.reservation:
         final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
@@ -166,39 +170,42 @@ class AppRouter {
             restaurantId: args['restaurantId'],
           ),
         );
-      
+
       case AppRoutes.transportHub:
         return MaterialPageRoute(builder: (_) => const TransportHubScreen());
-      
+
       case AppRoutes.transportBooking:
         final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
           builder: (_) => TransportBookingScreen(
-            transportType: args['transportType'], transportOption: null,
+            transportType: args['transportType'],
+            transportOption: null,
           ),
         );
-      
+
       case AppRoutes.itineraryPlanner:
-        return MaterialPageRoute(builder: (_) => const ItineraryPlannerScreen());
-      
+        return MaterialPageRoute(
+            builder: (_) => const ItineraryPlannerScreen());
+
       case AppRoutes.daySchedule:
         final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
           builder: (_) => DayScheduleScreen(
             date: args['date'],
-            itineraryId: args['itineraryId'], day: null,
+            itineraryId: args['itineraryId'],
+            day: 0,
           ),
         );
-      
+
       case AppRoutes.translator:
         return MaterialPageRoute(builder: (_) => const TranslatorScreen());
-      
+
       case AppRoutes.culturalInfo:
         return MaterialPageRoute(builder: (_) => const CulturalInfoScreen());
-      
+
       case AppRoutes.forum:
         return MaterialPageRoute(builder: (_) => const ForumScreen());
-      
+
       case AppRoutes.review:
         final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
@@ -207,25 +214,26 @@ class AppRouter {
             entityType: args['entityType'],
           ),
         );
-      
+
       case AppRoutes.deals:
         return MaterialPageRoute(builder: (_) => const DealsScreen());
-      
+
       case AppRoutes.safety:
         return MaterialPageRoute(builder: (_) => const SafetyScreen());
-      
+
       case AppRoutes.emergency:
         return MaterialPageRoute(builder: (_) => const EmergencyScreen());
-      
+
       case AppRoutes.profile:
         return MaterialPageRoute(builder: (_) => const ProfileScreen());
-      
+
       case AppRoutes.settings:
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
-      
+
       case AppRoutes.notifications:
-        return MaterialPageRoute(builder: (_) => const NotificationCenterScreen());
-        
+        return MaterialPageRoute(
+            builder: (_) => const NotificationCenterScreen());
+
       default:
         return MaterialPageRoute(
           builder: (_) => ErrorScreen(
@@ -234,7 +242,7 @@ class AppRouter {
         );
     }
   }
-  
+
   // Prevent instantiation
   AppRouter._();
 }

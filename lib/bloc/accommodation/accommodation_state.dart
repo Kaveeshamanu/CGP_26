@@ -3,7 +3,7 @@ part of 'accommodation_bloc.dart';
 /// Base class for all accommodation states.
 abstract class AccommodationState extends Equatable {
   const AccommodationState();
-  
+
   @override
   List<Object?> get props => [];
 }
@@ -17,9 +17,9 @@ class AccommodationsLoading extends AccommodationState {}
 /// State when accommodations have been successfully loaded.
 class AccommodationsLoaded extends AccommodationState {
   final List<Accommodation> accommodations;
-  
+
   const AccommodationsLoaded({required this.accommodations});
-  
+
   @override
   List<Object> get props => [accommodations];
 }
@@ -30,9 +30,9 @@ class AccommodationDetailsLoading extends AccommodationState {}
 /// State when accommodation details have been successfully loaded.
 class AccommodationDetailsLoaded extends AccommodationState {
   final Accommodation accommodation;
-  
+
   const AccommodationDetailsLoaded({required this.accommodation});
-  
+
   @override
   List<Object> get props => [accommodation];
 }
@@ -43,9 +43,9 @@ class RoomTypesLoading extends AccommodationState {}
 /// State when room types have been successfully loaded.
 class RoomTypesLoaded extends AccommodationState {
   final List<Room> rooms;
-  
+
   const RoomTypesLoaded({required this.rooms});
-  
+
   @override
   List<Object> get props => [rooms];
 }
@@ -56,19 +56,39 @@ class RoomAvailabilityLoading extends AccommodationState {}
 /// State when room availability has been successfully checked.
 class RoomAvailabilityLoaded extends AccommodationState {
   final bool isAvailable;
-  
+
   const RoomAvailabilityLoaded({required this.isAvailable});
-  
+
   @override
   List<Object> get props => [isAvailable];
+}
+
+/// State when availability has been checked.
+class AccommodationAvailabilityChecked extends AccommodationState {
+  final bool isAvailable;
+
+  const AccommodationAvailabilityChecked({required this.isAvailable});
+
+  @override
+  List<Object> get props => [isAvailable];
+}
+
+/// State when booking has been successful.
+class AccommodationBookingSuccess extends AccommodationState {
+  final String bookingId;
+
+  const AccommodationBookingSuccess({required this.bookingId});
+
+  @override
+  List<Object> get props => [bookingId];
 }
 
 /// State when there is an error loading accommodations.
 class AccommodationsError extends AccommodationState {
   final String message;
-  
+
   const AccommodationsError({required this.message});
-  
+
   @override
   List<Object> get props => [message];
 }
@@ -76,9 +96,9 @@ class AccommodationsError extends AccommodationState {
 /// State when there is an error performing an action on an accommodation.
 class AccommodationActionError extends AccommodationState {
   final String message;
-  
+
   const AccommodationActionError({required this.message});
-  
+
   @override
   List<Object> get props => [message];
 }

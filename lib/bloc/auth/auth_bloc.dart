@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:taprobana_trails/core/auth/auth_service.dart';
+import 'package:taprobana_trails/data/models/app_user.dart';
 import 'package:taprobana_trails/data/models/user.dart';
 import 'package:taprobana_trails/data/repositories/user_repository.dart';
 
@@ -15,7 +16,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthService _authService;
   final UserRepository _userRepository;
   late final StreamSubscription<AppUser?> _userSubscription;
-  
+
   AuthBloc({
     required AuthService authService,
     required UserRepository userRepository,
@@ -26,22 +27,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoggedIn>(_onLoggedIn);
     on<LoggedOut>(_onLoggedOut);
     on<UserChanged>(_onUserChanged);
-    
+
     _userSubscription = _authService.appUserChanges.listen((user) {
       add(UserChanged(user: user));
     });
   }
-  
+
   Future<void> _onAppStarted(AppStarted event, Emitter<AuthState> emit) async {
     try {
       final isSignedIn = _authService.currentUser != null;
-      
+
       if (isSignedIn) {
         final user = _authService.getCurrentAppUser();
-        
+
         if (user != null) {
           final completeUser = await _userRepository.getUser(user.id);
-          emit(AuthAuthenticated(user: completeUser ?? user));
+          emit(AuthAuthenticated(user: user));
         } else {
           emit(AuthUnauthenticated());
         }
@@ -53,20 +54,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthUnauthenticated());
     }
   }
-  
+
   Future<void> _onLoggedIn(LoggedIn event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
-      // When a user logs in, we need to get their complete profile from the repository
-      final user = await _userRepository.getUser(event.user.id);
-      emit(AuthAuthenticated(user: user ?? event.user));
+      // Using direct assignment since LoggedIn.user is already typed as AppUser
+      final completeUser = await _userRepository.getUser(event.user.id);
+      emit(AuthAuthenticated(user: event.user));
     } catch (e) {
       debugPrint('Error in LoggedIn: $e');
       emit(AuthError(message: 'Failed to load user profile'));
       emit(AuthAuthenticated(user: event.user));
     }
   }
-  
+
   Future<void> _onLoggedOut(LoggedOut event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
@@ -77,30 +78,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthError(message: 'Failed to sign out'));
     }
   }
-  
-  Future<void> _onUserChanged(UserChanged event, Emitter<AuthState> emit) async {
+
+  Future<void> _onUserChanged(
+      UserChanged event, Emitter<AuthState> emit) async {
     if (event.user == null) {
       emit(AuthUnauthenticated());
     } else {
+      // Fix for the type error: Instead of accessing event.user directly,
+      // we need to make Dart understand it's an AppUser
+      final AppUser appUser = event.user!;
+
       try {
-        // When the user changes, we need to get their complete profile from the repository
-        final completeUser = await _userRepository.getUser(event.user!.id);
-        emit(AuthAuthenticated(user: completeUser ?? event.user!));
+        final completeUser = await _userRepository.getUser(appUser.id);
+        emit(AuthAuthenticated(user: appUser));
       } catch (e) {
         debugPrint('Error in UserChanged: $e');
-        // Even if we fail to get the complete user, we still want to consider the user authenticated
-        emit(AuthAuthenticated(user: event.user!));
+        emit(AuthAuthenticated(user: appUser));
       }
     }
   }
-  
+
   @override
   Future<void> close() {
     _userSubscription.cancel();
     return super.close();
   }
-}
-
-extension on AppUser {
-  String get id => "";
 }

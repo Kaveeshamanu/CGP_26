@@ -20,10 +20,10 @@ class EmergencyScreen extends StatefulWidget {
 
 class _EmergencyScreenState extends State<EmergencyScreen> {
   final LocationService _locationService = LocationService();
-  
+
   bool _isLoading = false;
   Position? _currentPosition;
-  
+
   // Embassy contact information
   final List<Embassy> _embassies = [
     Embassy(
@@ -39,7 +39,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       address: '389 Bauddhaloka Mawatha, Colombo 7, Sri Lanka',
       phone: '+94 11 539 0639',
       emergencyPhone: '+94 11 539 0999',
-      website: 'https://www.gov.uk/world/organisations/british-high-commission-colombo',
+      website:
+          'https://www.gov.uk/world/organisations/british-high-commission-colombo',
       flagCode: 'gb',
     ),
     Embassy(
@@ -67,7 +68,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       flagCode: 'in',
     ),
   ];
-  
+
   // Emergency service information
   final List<EmergencyService> _emergencyServices = [
     EmergencyService(
@@ -113,7 +114,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       color: Colors.teal,
     ),
   ];
-  
+
   // Hospital information
   final List<Hospital> _hospitals = [
     Hospital(
@@ -160,7 +161,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       final position = await _locationService.getCurrentPosition();
       setState(() {
@@ -192,7 +193,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
   }
 
   Future<void> _openMap(double latitude, double longitude, String label) async {
-    final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$latitude,$longitude&query_place_id=$label');
+    final uri = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude&query_place_id=$label');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
@@ -211,22 +213,23 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     if (_currentPosition != null) {
       final lat = _currentPosition!.latitude;
       final lng = _currentPosition!.longitude;
-      
+
       final locationUrl = 'https://maps.google.com/?q=$lat,$lng';
-      
+
       Share.share(
         'My current location: $locationUrl\n\nSent via Taprobana Trails safety feature.',
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Unable to share location. Please enable location services.'),
+          content: Text(
+              'Unable to share location. Please enable location services.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
     }
   }
-  
+
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text)).then((_) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -270,7 +273,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             ),
             if (_isLoading)
               const Center(
-                child: CircularProgressLoader(),
+                child: CircularProgressIndicator(),
               ),
           ],
         ),
@@ -645,7 +648,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.call, size: 16, color: Colors.red),
+                          icon: const Icon(Icons.call,
+                              size: 16, color: Colors.red),
                           onPressed: () => _callNumber(embassy.emergencyPhone),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),

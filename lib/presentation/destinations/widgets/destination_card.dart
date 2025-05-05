@@ -22,7 +22,7 @@ class DestinationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -64,7 +64,7 @@ class DestinationCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
+
                   // Featured badge
                   if (featured)
                     Positioned(
@@ -89,7 +89,7 @@ class DestinationCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  
+
                   // Rating badge
                   Positioned(
                     top: 10,
@@ -129,7 +129,7 @@ class DestinationCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
+
                   // Save button
                   if (!compact)
                     Positioned(
@@ -160,7 +160,7 @@ class DestinationCard extends StatelessWidget {
                     ),
                 ],
               ),
-              
+
               // Destination details
               Padding(
                 padding: EdgeInsets.all(12),
@@ -176,9 +176,9 @@ class DestinationCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     SizedBox(height: 4),
-                    
+
                     // Location
                     Row(
                       children: [
@@ -192,7 +192,8 @@ class DestinationCard extends StatelessWidget {
                           child: Text(
                             destination.regionName,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.7),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -200,18 +201,18 @@ class DestinationCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    
+
                     if (!compact) ...[
                       SizedBox(height: 8),
-                      
+
                       // Tags
                       SizedBox(
                         height: 24,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
-                          itemCount: destination.tags.length > 3 
-                            ? 3 
-                            : destination.tags.length,
+                          itemCount: destination.tags.length > 3
+                              ? 3
+                              : destination.tags.length,
                           itemBuilder: (context, index) {
                             return Container(
                               margin: EdgeInsets.only(right: 6),
@@ -220,7 +221,8 @@ class DestinationCard extends StatelessWidget {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: _getTagColor(destination.tags[index], theme),
+                                color: _getTagColor(
+                                    destination.tags[index], theme),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -235,9 +237,9 @@ class DestinationCard extends StatelessWidget {
                           },
                         ),
                       ),
-                      
+
                       SizedBox(height: 8),
-                      
+
                       // Weather and additional info
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -246,35 +248,40 @@ class DestinationCard extends StatelessWidget {
                           Row(
                             children: [
                               Icon(
-                                _getWeatherIcon(destination.currentWeather),
+                                _getWeatherIcon(
+                                    destination.currentWeather as double),
                                 size: 14,
-                                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.7),
                               ),
                               SizedBox(width: 4),
                               Text(
                                 '${destination.currentWeather}°C',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.7),
                                 ),
                               ),
                             ],
                           ),
-                          
+
                           // Best time to visit or price
                           Row(
                             children: [
                               Icon(
                                 Icons.calendar_today,
                                 size: 14,
-                                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.7),
                               ),
                               SizedBox(width: 4),
                               Text(
-                                destination.bestTimeToVisit,
+                                destination.bestTimeToVisit!,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.7),
                                 ),
                               ),
                             ],
@@ -291,7 +298,7 @@ class DestinationCard extends StatelessWidget {
       ),
     );
   }
-  
+
   Color _getTagColor(String tag, ThemeData theme) {
     // Return different colors based on tag category
     switch (tag.toLowerCase()) {
@@ -300,50 +307,50 @@ class DestinationCard extends StatelessWidget {
       case 'surfing':
       case 'water sports':
         return Colors.blue;
-      
+
       case 'mountain':
       case 'hiking':
       case 'trekking':
       case 'camping':
         return Colors.green;
-      
+
       case 'cultural':
       case 'historical':
       case 'temple':
       case 'unesco':
       case 'heritage':
         return Colors.purple;
-      
+
       case 'wildlife':
       case 'safari':
       case 'nature':
       case 'bird watching':
         return Colors.amber.shade800;
-      
+
       case 'adventure':
       case 'extreme':
       case 'rafting':
         return Colors.red;
-      
+
       case 'food':
       case 'culinary':
       case 'dining':
         return Colors.orange;
-      
+
       case 'luxury':
       case 'spa':
       case 'wellness':
         return Colors.teal;
-      
+
       case 'budget':
       case 'backpacking':
         return Colors.indigo;
-      
+
       default:
         return theme.colorScheme.primary;
     }
   }
-  
+
   IconData _getWeatherIcon(double temperature) {
     if (temperature >= 30) {
       return Icons.wb_sunny;

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/utils/connectivity.dart';
 import '../widgets/buttons.dart';
 
 /// Error screen to display when something goes wrong in the app
@@ -14,7 +13,7 @@ class ErrorScreen extends StatelessWidget {
   final bool isConnectivityError;
   final bool isNotFoundError;
   final bool showHomeButton;
-  
+
   const ErrorScreen({
     super.key,
     this.title,
@@ -63,7 +62,8 @@ class ErrorScreen extends StatelessWidget {
   }) {
     return ErrorScreen(
       title: title ?? 'Something Went Wrong',
-      message: message ?? 'An unexpected error occurred. Please try again later.',
+      message:
+          message ?? 'An unexpected error occurred. Please try again later.',
       errorCode: errorCode,
       onRetry: onRetry,
       showHomeButton: showHomeButton,
@@ -85,45 +85,48 @@ class ErrorScreen extends StatelessWidget {
                 height: 50,
               ),
               const SizedBox(height: 40.0),
-              
+
               // Error animation
               _buildErrorAnimation(),
               const SizedBox(height: 32.0),
-              
+
               // Error title
               Text(
                 title ?? 'Error',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16.0),
-              
+
               // Error message
               Text(
                 message ?? 'An unexpected error occurred.',
                 style: Theme.of(context).textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
-              
+
               // Error code (if provided)
               if (errorCode != null) ...[
                 const SizedBox(height: 8.0),
                 Text(
                   'Error Code: $errorCode',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                  ),
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.color
+                            ?.withOpacity(0.7),
+                      ),
                   textAlign: TextAlign.center,
                 ),
               ],
               const SizedBox(height: 40.0),
-              
+
               // Retry button
-              if (onRetry != null)
-                _buildRetryButton(context),
-              
+              if (onRetry != null) _buildRetryButton(context),
+
               // Home button
               if (showHomeButton) ...[
                 const SizedBox(height: 16.0),
@@ -139,7 +142,7 @@ class ErrorScreen extends StatelessWidget {
   Widget _buildErrorAnimation() {
     String animationAsset;
     double height = 200.0;
-    
+
     if (isConnectivityError) {
       animationAsset = 'assets/animations/no_connection.json';
     } else if (isNotFoundError) {
@@ -147,7 +150,7 @@ class ErrorScreen extends StatelessWidget {
     } else {
       animationAsset = 'assets/animations/error.json';
     }
-    
+
     return Lottie.asset(
       animationAsset,
       height: height,
@@ -159,22 +162,8 @@ class ErrorScreen extends StatelessWidget {
   Widget _buildRetryButton(BuildContext context) {
     return ElevatedButton.icon(
       onPressed: () async {
-        // If it's a connectivity error, check connectivity before retrying
-        if (isConnectivityError) {
-          final hasConnection = await ConnectivityHelper.isConnected();
-          if (!hasConnection) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('You are still offline. Please check your connection.'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            }
-            return;
-          }
-        }
-        
+        // If it's a connectivity error, we can't check connectivity
+        // since ConnectivityHelper is not available. Simply call onRetry
         onRetry?.call();
       },
       icon: isConnectivityError

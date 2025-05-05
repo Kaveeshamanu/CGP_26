@@ -1,48 +1,37 @@
 part of 'auth_bloc.dart';
 
-/// Base class for all authentication events.
+/// Base class for all authentication events
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
-  
+
   @override
   List<Object?> get props => [];
 }
 
-/// Event that is fired when the app is started.
+/// Event when application starts
 class AppStarted extends AuthEvent {}
 
-/// Event that is fired when the user logs in.
+/// Event when user logs in
 class LoggedIn extends AuthEvent {
   final AppUser user;
-  
+
   const LoggedIn({required this.user});
-  
+
   @override
   List<Object> get props => [user];
 }
 
-/// Event that is fired when the user logs out.
+/// Event when user logs out
 class LoggedOut extends AuthEvent {}
 
-/// Event that is fired when the user changes.
+/// Event when the authenticated user changes
+// From auth_event.dart
 class UserChanged extends AuthEvent {
+  // The explicit type declaration in this class is critical
   final AppUser? user;
-  
+
   const UserChanged({this.user});
-  
+
   @override
   List<Object?> get props => [user];
-}
-
-mixin AppUser {
-}
-
-/// Event that is fired when the user updates their profile.
-class UpdatedProfile extends AuthEvent {
-  final AppUser user;
-  
-  const UpdatedProfile({required this.user});
-  
-  @override
-  List<Object> get props => [user];
 }

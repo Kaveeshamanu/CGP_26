@@ -4,14 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:lottie/lottie.dart';
-import 'package:taprobana_trails/presentation/maps/ar_mode_screen.dart' show PermissionsHandler;
+import 'package:taprobana_trails/presentation/maps/ar_mode_screen.dart'
+    show PermissionsHandler;
 
 import '../../config/theme.dart';
 import '../../config/constants.dart';
 import '../../core/utils/permissions.dart';
 import '../../bloc/auth/auth_bloc.dart';
-import '../../bloc/auth/auth_event.dart';
-import '../../bloc/auth/auth_state.dart';
 import 'onboarding_page.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -24,42 +23,47 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   final PermissionsHandler _permissionsHandler = PermissionsHandler();
-  
+
   int _currentPage = 0;
   bool _isLastPage = false;
-  
+
   final List<OnboardingPageData> _pages = [
     OnboardingPageData(
       title: 'Explore Sri Lanka',
-      description: 'Discover the wonders of Sri Lanka with curated destinations, hidden gems, and local experiences.',
+      description:
+          'Discover the wonders of Sri Lanka with curated destinations, hidden gems, and local experiences.',
       animation: 'assets/animations/explore.json',
       backgroundColor: const Color(0xFF1A237E),
       textColor: Colors.white,
     ),
     OnboardingPageData(
       title: 'Plan Your Journey',
-      description: 'Create personalized itineraries, book accommodations, and organize your perfect trip with ease.',
+      description:
+          'Create personalized itineraries, book accommodations, and organize your perfect trip with ease.',
       animation: 'assets/animations/plan.json',
       backgroundColor: const Color(0xFF00796B),
       textColor: Colors.white,
     ),
     OnboardingPageData(
       title: 'Navigate Like a Local',
-      description: 'Get around effortlessly with transport booking, offline maps, and real-time navigation features.',
+      description:
+          'Get around effortlessly with transport booking, offline maps, and real-time navigation features.',
       animation: 'assets/animations/navigate.json',
       backgroundColor: const Color(0xFF4A148C),
       textColor: Colors.white,
     ),
     OnboardingPageData(
       title: 'Immerse in Culture',
-      description: 'Connect with local traditions, languages, and customs through helpful guides and translation tools.',
+      description:
+          'Connect with local traditions, languages, and customs through helpful guides and translation tools.',
       animation: 'assets/animations/culture.json',
       backgroundColor: const Color(0xFF880E4F),
       textColor: Colors.white,
     ),
     OnboardingPageData(
       title: 'Ready to Explore?',
-      description: 'Your Sri Lankan adventure awaits! Create an account or sign in to start your journey.',
+      description:
+          'Your Sri Lankan adventure awaits! Create an account or sign in to start your journey.',
       animation: 'assets/animations/ready.json',
       backgroundColor: AppTheme.primaryColor,
       textColor: Colors.white,
@@ -69,10 +73,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // Set system UI overlay style
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
-    
+
     // Request initial permissions
     _requestInitialPermissions();
   }
@@ -92,7 +96,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     // Save that onboarding has been completed
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_completed', true);
-    
+
     // Navigate to the appropriate screen
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/auth');
@@ -140,7 +144,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               );
             },
           ),
-          
+
           // Skip button
           if (!_isLastPage)
             Positioned(
@@ -157,7 +161,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
             ),
-          
+
           // Bottom controls
           Positioned(
             bottom: 50,
@@ -176,9 +180,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     dotColor: Colors.white.withOpacity(0.5),
                   ),
                 ),
-                
+
                 const SizedBox(height: 50),
-                
+
                 // Next button
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -204,7 +208,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Additional options on last page
                 if (_isLastPage) ...[
                   const SizedBox(height: 20),

@@ -34,12 +34,12 @@ class SafetyScreen extends StatefulWidget {
 class _SafetyScreenState extends State<SafetyScreen> {
   final LocationService _locationService = LocationService();
   final PermissionsHandler _permissionsHandler = PermissionsHandler();
-  
+
   bool _isLoading = false;
   Position? _currentPosition;
   Destination? _destination;
   bool _locationPermissionGranted = false;
-  
+
   final List<EmergencyContact> _emergencyContacts = [
     EmergencyContact(
       type: 'Police',
@@ -72,45 +72,52 @@ class _SafetyScreenState extends State<SafetyScreen> {
       color: Colors.purple,
     ),
   ];
-  
+
   final List<SafetyTip> _safetyTips = [
     SafetyTip(
       title: 'Keep your documents safe',
-      description: 'Always keep a digital copy of your passport and travel documents. Store physical copies in your hotel safe.',
+      description:
+          'Always keep a digital copy of your passport and travel documents. Store physical copies in your hotel safe.',
       icon: Icons.assignment,
     ),
     SafetyTip(
       title: 'Stay hydrated',
-      description: 'Sri Lanka can be hot and humid. Drink bottled water and carry water with you, especially when sightseeing.',
+      description:
+          'Sri Lanka can be hot and humid. Drink bottled water and carry water with you, especially when sightseeing.',
       icon: Icons.water_drop,
     ),
     SafetyTip(
       title: 'Respect wildlife',
-      description: 'Keep a safe distance from wild animals. Never feed or provoke them, especially elephants and monkeys.',
+      description:
+          'Keep a safe distance from wild animals. Never feed or provoke them, especially elephants and monkeys.',
       icon: Icons.pets,
     ),
     SafetyTip(
       title: 'Be cautious of scams',
-      description: 'Be wary of strangers offering unsolicited help or unusual deals. Use official taxis and tour operators.',
+      description:
+          'Be wary of strangers offering unsolicited help or unusual deals. Use official taxis and tour operators.',
       icon: Icons.warning,
     ),
     SafetyTip(
       title: 'Dress appropriately',
-      description: 'When visiting temples or religious sites, dress modestly covering shoulders and knees out of respect.',
+      description:
+          'When visiting temples or religious sites, dress modestly covering shoulders and knees out of respect.',
       icon: Icons.accessibility,
     ),
   ];
-  
+
   final List<SafetyAlert> _currentAlerts = [
     SafetyAlert(
       title: 'Heavy rain in Central Province',
-      description: 'Heavy rain expected in Kandy, Nuwara Eliya, and surrounding areas. Flash floods possible in low-lying areas.',
+      description:
+          'Heavy rain expected in Kandy, Nuwara Eliya, and surrounding areas. Flash floods possible in low-lying areas.',
       severity: AlertSeverity.moderate,
       date: DateTime.now().subtract(const Duration(days: 1)),
     ),
     SafetyAlert(
       title: 'Road closure on A9 Highway',
-      description: 'Temporary road closure on A9 Highway between Kandy and Jaffna due to maintenance work. Expect delays.',
+      description:
+          'Temporary road closure on A9 Highway between Kandy and Jaffna due to maintenance work. Expect delays.',
       severity: AlertSeverity.low,
       date: DateTime.now().subtract(const Duration(days: 2)),
     ),
@@ -121,12 +128,12 @@ class _SafetyScreenState extends State<SafetyScreen> {
     super.initState();
     _checkLocationPermission();
     _getCurrentLocation();
-    
+
     // Load destination data if destinationId is provided
     if (widget.destinationId != null) {
       context.read<DestinationBloc>().add(
-        LoadDestinationDetails(destinationId: widget.destinationId!),
-      );
+            LoadDestinationDetails(destinationId: widget.destinationId!),
+          );
     }
   }
 
@@ -141,11 +148,11 @@ class _SafetyScreenState extends State<SafetyScreen> {
     if (!_locationPermissionGranted) {
       return;
     }
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       final position = await _locationService.getCurrentPosition();
       setState(() {
@@ -190,22 +197,23 @@ class _SafetyScreenState extends State<SafetyScreen> {
     if (_currentPosition != null) {
       final lat = _currentPosition!.latitude;
       final lng = _currentPosition!.longitude;
-      
+
       final locationUrl = 'https://maps.google.com/?q=$lat,$lng';
-      
+
       Share.share(
         'My current location: $locationUrl\n\nSent via Taprobana Trails safety feature.',
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Unable to share location. Please enable location services.'),
+          content: Text(
+              'Unable to share location. Please enable location services.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
     }
   }
-  
+
   void _showSosOptionsModal() {
     showModalBottomSheet(
       context: context,
@@ -296,15 +304,15 @@ class _SafetyScreenState extends State<SafetyScreen> {
             setState(() {
               _isLoading = false;
             });
-            
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Error: ${state.message}'),
                 behavior: SnackBarBehavior.floating,
               ),
             );
-          } else if (state is DestinationDetailsLoaded && 
-                    state.destination.id == widget.destinationId) {
+          } else if (state is DestinationDetailsLoaded &&
+              state.destination.id == widget.destinationId) {
             setState(() {
               _destination = state.destination;
               _isLoading = false;
@@ -317,7 +325,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
               _buildSafetyContent(),
               if (_isLoading)
                 const Center(
-                  child: CircularProgressLoader(),
+                  child: CircularProgressIndicator(),
                 ),
             ],
           );
@@ -337,9 +345,9 @@ class _SafetyScreenState extends State<SafetyScreen> {
         children: [
           // SOS Card
           _buildSosCard(),
-          
+
           const SizedBox(height: 24),
-          
+
           // Current alerts section
           if (_currentAlerts.isNotEmpty) ...[
             Row(
@@ -362,14 +370,14 @@ class _SafetyScreenState extends State<SafetyScreen> {
             ),
             const SizedBox(height: 8),
             ..._currentAlerts.map((alert) => AlertCard(
-              alert: alert,
-              onTap: () {
-                // Show alert details
-              },
-            )),
+                  alert: alert,
+                  onTap: () {
+                    // Show alert details
+                  },
+                )),
             const SizedBox(height: 16),
           ],
-          
+
           // Emergency contacts section
           const Text(
             'Emergency Contacts',
@@ -381,7 +389,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
           const SizedBox(height: 16),
           _buildEmergencyContactsGrid(),
           const SizedBox(height: 24),
-          
+
           // Safety tips section
           const Text(
             'Safety Tips',
@@ -392,9 +400,9 @@ class _SafetyScreenState extends State<SafetyScreen> {
           ),
           const SizedBox(height: 16),
           ..._safetyTips.map(_buildSafetyTipCard),
-          
+
           const SizedBox(height: 24),
-          
+
           // Embassy information section
           if (_destination != null) ...[
             const Text(
@@ -407,7 +415,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
             const SizedBox(height: 16),
             _buildEmbassyCard(),
           ],
-          
+
           // Extra space at bottom for floating action button
           const SizedBox(height: 80),
         ],
@@ -718,8 +726,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
   }
 }
 
-CircularProgressLoader() {
-}
+CircularProgressLoader() {}
 
 class EmergencyContact {
   final String type;

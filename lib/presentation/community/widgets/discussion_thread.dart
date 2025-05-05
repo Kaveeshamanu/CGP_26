@@ -1,12 +1,11 @@
+// Import the ForumBloc
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:taprobana_trails/bloc/forum/forum_bloc.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../bloc/forum/forum_bloc.dart';
-import '../../../bloc/forum/forum_event.dart';
-import '../../../bloc/forum/forum_state.dart';
 import '../../../core/utils/date_utils.dart' as app_date_utils;
 
 /// A widget that displays a forum discussion thread in a list
@@ -34,20 +33,23 @@ class DiscussionThread extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final DateTime createdAt = DateTime.parse(threadData['createdAt'] as String);
+    final DateTime createdAt =
+        DateTime.parse(threadData['createdAt'] as String);
     final String timeAgo = timeago.format(createdAt);
-    
+
     final int upvotes = threadData['upvotes'] as int? ?? 0;
     final int commentCount = threadData['commentCount'] as int? ?? 0;
     final bool isUpvoted = threadData['isUpvoted'] as bool? ?? false;
-    final bool hasAttachment = (threadData['attachments'] as List<dynamic>?)?.isNotEmpty ?? false;
-    final bool hasImage = (threadData['imageUrls'] as List<dynamic>?)?.isNotEmpty ?? false;
-    
+    final bool hasAttachment =
+        (threadData['attachments'] as List<dynamic>?)?.isNotEmpty ?? false;
+    final bool hasImage =
+        (threadData['imageUrls'] as List<dynamic>?)?.isNotEmpty ?? false;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: isPreview || isDetailed
-            ? null 
+            ? null
             : BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(12),
@@ -59,36 +61,36 @@ class DiscussionThread extends StatelessWidget {
                   ),
                 ],
               ),
-        padding: isPreview || isDetailed 
-            ? EdgeInsets.zero 
+        padding: isPreview || isDetailed
+            ? EdgeInsets.zero
             : const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Thread header (user info and date)
             _buildThreadHeader(context, timeAgo),
-            
+
             // Thread title
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Text(
                 threadData['title'] as String,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
             ),
-            
+
             // Thread content
             _buildThreadContent(context),
-            
+
             // Thread images
             if (hasImage) _buildImagePreview(context),
-            
+
             // Thread categories/tags
             if ((threadData['tags'] as List<dynamic>?)?.isNotEmpty ?? false)
               _buildTagsList(context),
-            
+
             // Thread actions (upvote, comment, share)
             const SizedBox(height: 12.0),
             _buildThreadActions(context, upvotes, commentCount, isUpvoted),
@@ -98,6 +100,8 @@ class DiscussionThread extends StatelessWidget {
     );
   }
 
+  // Other methods remain the same...
+
   Widget _buildThreadHeader(BuildContext context, String timeAgo) {
     return Row(
       children: [
@@ -105,14 +109,17 @@ class DiscussionThread extends StatelessWidget {
         CircleAvatar(
           radius: 16.0,
           backgroundImage: threadData['authorPhotoUrl'] != null
-              ? CachedNetworkImageProvider(threadData['authorPhotoUrl'] as String)
+              ? CachedNetworkImageProvider(
+                  threadData['authorPhotoUrl'] as String)
               : null,
           child: threadData['authorPhotoUrl'] == null
-              ? Text((threadData['authorName'] as String).substring(0, 1).toUpperCase())
+              ? Text((threadData['authorName'] as String)
+                  .substring(0, 1)
+                  .toUpperCase())
               : null,
         ),
         const SizedBox(width: 8.0),
-        
+
         // User name and post time
         Expanded(
           child: Column(
@@ -121,8 +128,8 @@ class DiscussionThread extends StatelessWidget {
               Text(
                 threadData['authorName'] as String,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               Text(
                 timeAgo,
@@ -131,13 +138,15 @@ class DiscussionThread extends StatelessWidget {
             ],
           ),
         ),
-        
+
         // Category pill
         if (threadData['category'] != null && !isPreview)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
             decoration: BoxDecoration(
-              color: _getCategoryColor(threadData['category'] as String).withOpacity(0.1),
+              color: _getCategoryColor(threadData['category'] as String)
+                  .withOpacity(0.1),
               borderRadius: BorderRadius.circular(16.0),
             ),
             child: Text(
@@ -155,14 +164,14 @@ class DiscussionThread extends StatelessWidget {
 
   Widget _buildThreadContent(BuildContext context) {
     final String content = threadData['content'] as String;
-    
+
     if (showFullContent) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 8.0),
         child: Text(content),
       );
     }
-    
+
     // Show a preview of the content
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
@@ -177,10 +186,11 @@ class DiscussionThread extends StatelessWidget {
   }
 
   Widget _buildImagePreview(BuildContext context) {
-    final List<String> imageUrls = List<String>.from(threadData['imageUrls'] as List<dynamic>);
-    
+    final List<String> imageUrls =
+        List<String>.from(threadData['imageUrls'] as List<dynamic>);
+
     if (imageUrls.isEmpty) return const SizedBox.shrink();
-    
+
     return Padding(
       padding: const EdgeInsets.only(top: 8.0, bottom: 12.0),
       child: ClipRRect(
@@ -200,7 +210,8 @@ class DiscussionThread extends StatelessWidget {
       width: double.infinity,
       placeholder: (context, url) => Shimmer.fromColors(
         baseColor: Theme.of(context).colorScheme.surface,
-        highlightColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+        highlightColor:
+            Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
         child: Container(
           height: 200.0,
           width: double.infinity,
@@ -225,10 +236,9 @@ class DiscussionThread extends StatelessWidget {
         itemBuilder: (context, index) {
           // Show +X overlay for the last item if there are more than 3 images
           final bool isLastWithMore = index == 3 && imageUrls.length > 4;
-          final String imageUrl = isLastWithMore 
-              ? imageUrls[3] 
-              : imageUrls[index];
-              
+          final String imageUrl =
+              isLastWithMore ? imageUrls[3] : imageUrls[index];
+
           return Container(
             width: 120.0,
             margin: const EdgeInsets.only(right: 8.0),
@@ -242,7 +252,10 @@ class DiscussionThread extends StatelessWidget {
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Shimmer.fromColors(
                       baseColor: Theme.of(context).colorScheme.surface,
-                      highlightColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                      highlightColor: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.1),
                       child: Container(color: Colors.white),
                     ),
                     errorWidget: (context, url, error) => Container(
@@ -276,8 +289,9 @@ class DiscussionThread extends StatelessWidget {
   }
 
   Widget _buildTagsList(BuildContext context) {
-    final List<String> tags = List<String>.from(threadData['tags'] as List<dynamic>);
-    
+    final List<String> tags =
+        List<String>.from(threadData['tags'] as List<dynamic>);
+
     return Padding(
       padding: const EdgeInsets.only(top: 8.0),
       child: Wrap(
@@ -304,17 +318,30 @@ class DiscussionThread extends StatelessWidget {
     );
   }
 
-  Widget _buildThreadActions(BuildContext context, int upvotes, int commentCount, bool isUpvoted) {
+  // Here's where we fix the issue
+  Widget _buildThreadActions(
+      BuildContext context, int upvotes, int commentCount, bool isUpvoted) {
     return Row(
       children: [
         // Upvote button
         InkWell(
-          onTap: onUpvote ?? () {
-            context.read<ForumBloc>().add(ForumThreadUpvote(
-              threadId: threadData['id'] as String,
-              isUpvoting: !isUpvoted,
-            ));
-          },
+          onTap: onUpvote ??
+              () {
+                // Check if ForumBloc is available in the context
+                try {
+                  context.read<ForumBloc>().add(ForumThreadUpvote(
+                        threadId: threadData['id'] as String,
+                        isUpvoting: !isUpvoted,
+                      ));
+                } catch (e) {
+                  debugPrint('Error accessing ForumBloc: $e');
+                  // Fallback if ForumBloc is not available
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Upvote functionality is not available')),
+                  );
+                }
+              },
           borderRadius: BorderRadius.circular(20.0),
           child: Padding(
             padding: const EdgeInsets.all(8.0),
@@ -339,9 +366,9 @@ class DiscussionThread extends StatelessWidget {
             ),
           ),
         ),
-        
+
         const SizedBox(width: 16.0),
-        
+
         // Comments count
         InkWell(
           onTap: onTap,
@@ -360,9 +387,9 @@ class DiscussionThread extends StatelessWidget {
             ),
           ),
         ),
-        
+
         const Spacer(),
-        
+
         // Share button
         if (onShare != null)
           IconButton(
@@ -371,9 +398,9 @@ class DiscussionThread extends StatelessWidget {
             padding: const EdgeInsets.all(8.0),
             constraints: const BoxConstraints(),
           ),
-        
+
         const SizedBox(width: 16.0),
-        
+
         // Save/bookmark button
         if (onSave != null)
           IconButton(
@@ -426,10 +453,11 @@ class CompactDiscussionThread extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final DateTime createdAt = DateTime.parse(threadData['createdAt'] as String);
+    final DateTime createdAt =
+        DateTime.parse(threadData['createdAt'] as String);
     final String timeAgo = timeago.format(createdAt);
     final int commentCount = threadData['commentCount'] as int? ?? 0;
-    
+
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -441,14 +469,17 @@ class CompactDiscussionThread extends StatelessWidget {
             CircleAvatar(
               radius: 14.0,
               backgroundImage: threadData['authorPhotoUrl'] != null
-                  ? CachedNetworkImageProvider(threadData['authorPhotoUrl'] as String)
+                  ? CachedNetworkImageProvider(
+                      threadData['authorPhotoUrl'] as String)
                   : null,
               child: threadData['authorPhotoUrl'] == null
-                  ? Text((threadData['authorName'] as String).substring(0, 1).toUpperCase())
+                  ? Text((threadData['authorName'] as String)
+                      .substring(0, 1)
+                      .toUpperCase())
                   : null,
             ),
             const SizedBox(width: 12.0),
-            
+
             // Thread content
             Expanded(
               child: Column(
@@ -457,8 +488,8 @@ class CompactDiscussionThread extends StatelessWidget {
                   Text(
                     threadData['title'] as String,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -473,9 +504,14 @@ class CompactDiscussionThread extends StatelessWidget {
                       Expanded(
                         child: Text(
                           timeAgo,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color
+                                        ?.withOpacity(0.7),
+                                  ),
                         ),
                       ),
                     ],
@@ -483,12 +519,13 @@ class CompactDiscussionThread extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Comment count
             if (commentCount > 0) ...[
               const SizedBox(width: 8.0),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
                 decoration: BoxDecoration(
                   color: Theme.of(context).primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12.0),

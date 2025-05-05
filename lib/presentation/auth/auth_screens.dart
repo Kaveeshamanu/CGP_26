@@ -3,18 +3,16 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:taprobana_trails/presentation/transportation/transport_hub_screen.dart' show CircularProgressLoader;
+import 'package:taprobana_trails/presentation/transportation/transport_hub_screen.dart'
+    show CircularProgressLoader;
 
 import '../../config/theme.dart';
 import '../../bloc/auth/auth_bloc.dart';
-import 'package:taprobana_trails/bloc/auth/auth_event.dart';
-import 'package:taprobana_trails/bloc/auth/auth_state.dart';
 import '../common/widgets/loaders.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
-import 'package:taprobana_trails/presentation/auth/forgot_password_screen.dart';
 
-/// Main auth screen that handles navigation between login, registration, 
+/// Main auth screen that handles navigation between login, registration,
 /// and password recovery screens
 class AuthScreen extends StatefulWidget {
   final bool initialIsLogin;
@@ -37,7 +35,7 @@ class _AuthScreenState extends State<AuthScreen> {
   void initState() {
     super.initState();
     _isLogin = widget.initialIsLogin;
-    
+
     // Navigate to the correct initial page
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _pageController.jumpToPage(_isLogin ? 0 : 1);
@@ -54,7 +52,7 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() {
       _isLogin = !_isLogin;
     });
-    
+
     _pageController.animateToPage(
       _isLogin ? 0 : 1,
       duration: const Duration(milliseconds: 400),
@@ -74,7 +72,7 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() {
       _isLogin = true;
     });
-    
+
     _pageController.animateToPage(
       0,
       duration: const Duration(milliseconds: 400),
@@ -95,7 +93,7 @@ class _AuthScreenState extends State<AuthScreen> {
             _isLoading = false;
           });
         }
-        
+
         if (state is AuthAuthenticated) {
           // Navigate to home screen when authenticated
           Navigator.pushNamedAndRemoveUntil(
@@ -130,7 +128,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
             ),
-            
+
             // Main content
             SafeArea(
               child: PageView(
@@ -142,12 +140,12 @@ class _AuthScreenState extends State<AuthScreen> {
                     onRegisterPressed: _toggleAuthMode,
                     onForgotPasswordPressed: _navigateToForgotPassword,
                   ),
-                  
+
                   // Register page
                   RegisterScreen(
                     onLoginPressed: _toggleAuthMode,
                   ),
-                  
+
                   // Forgot password page
                   ForgotPasswordScreen(
                     onBackToLoginPressed: _navigateToLogin,
@@ -155,12 +153,12 @@ class _AuthScreenState extends State<AuthScreen> {
                 ],
               ),
             ),
-            
+
             // Loading overlay
             if (_isLoading)
               Container(
                 color: Colors.black.withOpacity(0.5),
-                child: const Center(
+                child: Center(
                   child: CircularProgressLoader(),
                 ),
               ),
@@ -169,7 +167,7 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
-  
+
   ForgotPasswordScreen({required void Function() onBackToLoginPressed}) {}
 }
 

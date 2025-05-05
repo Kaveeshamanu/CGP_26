@@ -18,7 +18,7 @@ class HotelCard extends StatelessWidget {
   final Function()? onTap;
   final Function()? onFavoriteToggle;
   final bool isFavorite;
-  
+
   const HotelCard({
     super.key,
     required this.accommodation,
@@ -37,12 +37,12 @@ class HotelCard extends StatelessWidget {
     final nightCount = checkInDate != null && checkOutDate != null
         ? checkOutDate!.difference(checkInDate!).inDays
         : 1;
-    
+
     final totalPrice = accommodation.basePrice * nightCount;
     final priceFormat = NumberFormat.currency(
       symbol: accommodation.currencySymbol ?? '\$',
     );
-    
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -62,7 +62,7 @@ class HotelCard extends StatelessWidget {
           children: [
             // Image section with favorite button
             _buildImageSection(context),
-            
+
             // Hotel information
             Padding(
               padding: const EdgeInsets.all(12.0),
@@ -78,18 +78,18 @@ class HotelCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8.0),
-                  
+
                   // Name
                   Text(
                     accommodation.name,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4.0),
-                  
+
                   // Location
                   Row(
                     children: [
@@ -103,7 +103,8 @@ class HotelCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (showDistance && accommodation.distanceFromCenter != null)
+                      if (showDistance &&
+                          accommodation.distanceFromCenter != null)
                         Text(
                           '${accommodation.distanceFromCenter!.toStringAsFixed(1)} km from center',
                           style: Theme.of(context).textTheme.bodySmall,
@@ -111,11 +112,11 @@ class HotelCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8.0),
-                  
+
                   // Features
                   if (!isCompact && accommodation.features != null)
                     _buildFeaturesList(context),
-                  
+
                   // Price
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
@@ -127,9 +128,12 @@ class HotelCard extends StatelessWidget {
                           children: [
                             Text(
                               priceFormat.format(accommodation.basePrice),
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                             ),
                             Text(
                               'per night',
@@ -137,16 +141,18 @@ class HotelCard extends StatelessWidget {
                             ),
                           ],
                         ),
-                        
                         if (checkInDate != null && checkOutDate != null)
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
                                 priceFormat.format(totalPrice),
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
                               Text(
                                 'total for $nightCount ${nightCount > 1 ? 'nights' : 'night'}',
@@ -182,7 +188,8 @@ class HotelCard extends StatelessWidget {
               fit: BoxFit.cover,
               placeholder: (context, url) => Shimmer.fromColors(
                 baseColor: Theme.of(context).colorScheme.surface,
-                highlightColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                highlightColor:
+                    Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
                 child: Container(
                   color: Colors.white,
                 ),
@@ -194,7 +201,7 @@ class HotelCard extends StatelessWidget {
             ),
           ),
         ),
-        
+
         // Favorite button
         if (onFavoriteToggle != null)
           Positioned(
@@ -220,22 +227,23 @@ class HotelCard extends StatelessWidget {
               ),
             ),
           ),
-        
+
         // Special offers or badges
-        if (accommodation.isTopRated || accommodation.isFeatured)
+        if (accommodation.isTopRated! || accommodation.isFeatured)
           Positioned(
             top: 8.0,
             left: 8.0,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               decoration: BoxDecoration(
-                color: accommodation.isTopRated
+                color: accommodation.isTopRated!
                     ? Colors.amber.withOpacity(0.9)
                     : Theme.of(context).primaryColor.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(4.0),
               ),
               child: Text(
-                accommodation.isTopRated ? 'Top Rated' : 'Featured',
+                accommodation.isTopRated! ? 'Top Rated' : 'Featured',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -244,21 +252,23 @@ class HotelCard extends StatelessWidget {
               ),
             ),
           ),
-          
+
         // Discount badge if applicable
-        if (accommodation.weeklyDiscount != null || accommodation.monthlyDiscount != null)
+        if (accommodation.weeklyDiscount != null ||
+            accommodation.monthlyDiscount != null)
           Positioned(
             bottom: 8.0,
             right: 8.0,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               decoration: BoxDecoration(
                 color: Colors.green.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(4.0),
               ),
               child: Text(
-                accommodation.monthlyDiscount != null 
-                    ? '${accommodation.monthlyDiscount}% off' 
+                accommodation.monthlyDiscount != null
+                    ? '${accommodation.monthlyDiscount}% off'
                     : '${accommodation.weeklyDiscount}% off',
                 style: const TextStyle(
                   color: Colors.white,
@@ -312,7 +322,7 @@ class HotelCard extends StatelessWidget {
       'Hostel': Icons.people,
       'Boutique': Icons.star,
     };
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       decoration: BoxDecoration(
@@ -328,7 +338,8 @@ class HotelCard extends StatelessWidget {
           ),
           const SizedBox(width: 4.0),
           Text(
-            accommodation.type,semanticsLabel: 'Hotel',
+            accommodation.type,
+            semanticsLabel: 'Hotel',
             style: const TextStyle(fontSize: 12.0),
           ),
         ],
@@ -348,10 +359,10 @@ class HotelCard extends StatelessWidget {
       'Gym': Icons.fitness_center,
       'Breakfast': Icons.free_breakfast,
     };
-    
+
     // Get the top 3 features
     final features = accommodation.features?.take(3).toList() ?? [];
-    
+
     return Wrap(
       spacing: 8.0,
       runSpacing: 8.0,

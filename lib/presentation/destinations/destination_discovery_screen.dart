@@ -22,76 +22,121 @@ class DestinationDiscoveryScreen extends StatefulWidget {
   const DestinationDiscoveryScreen({super.key});
 
   @override
-  State<DestinationDiscoveryScreen> createState() => _DestinationDiscoveryScreenState();
+  State<DestinationDiscoveryScreen> createState() =>
+      _DestinationDiscoveryScreenState();
 }
 
-class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen> {
+class _DestinationDiscoveryScreenState
+    extends State<DestinationDiscoveryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final CarouselController _carouselController = CarouselController();
-  
+  final CarouselSliderController _carouselController =
+      CarouselSliderController();
+
   int _currentFeaturedIndex = 0;
   String _selectedCategory = 'All';
   String _searchQuery = '';
   bool _isFilterApplied = false;
-  
+
   // Filter parameters
   RangeValues _priceRange = RangeValues(0, 1000);
   double _minRating = 0.0;
   List<String> _selectedRegions = [];
   List<String> _selectedTags = [];
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     // Load destinations when screen is opened
     context.read<DestinationBloc>().add(LoadDestinations());
   }
-  
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
-  
+
   void _onCategorySelected(String category) {
     setState(() {
       _selectedCategory = category;
     });
-    
+
+    // Create a filters map
+    final Map<String, dynamic> filters = {};
+
+    // Add category filter
+    if (category != 'All') {
+      filters['category'] = category;
+    }
+
+    // Add search query if exists
+    if (_searchQuery.isNotEmpty) {
+      filters['searchQuery'] = _searchQuery;
+    }
+
+    // Add filter parameters if applied
+    if (_isFilterApplied) {
+      filters['minPrice'] = _priceRange.start;
+      filters['maxPrice'] = _priceRange.end;
+
+      if (_minRating > 0) {
+        filters['minRating'] = _minRating;
+      }
+
+      if (_selectedRegions.isNotEmpty) {
+        filters['regions'] = _selectedRegions;
+      }
+
+      if (_selectedTags.isNotEmpty) {
+        filters['tags'] = _selectedTags;
+      }
+    }
+
     // Update destinations based on selected category
-    context.read<DestinationBloc>().add(
-      FilterDestinations(
-        category: category != 'All' ? category : null,
-        searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
-        minPrice: _isFilterApplied ? _priceRange.start : null,
-        maxPrice: _isFilterApplied ? _priceRange.end : null,
-        minRating: _isFilterApplied && _minRating > 0 ? _minRating : null,
-        regions: _isFilterApplied && _selectedRegions.isNotEmpty ? _selectedRegions : null,
-        tags: _isFilterApplied && _selectedTags.isNotEmpty ? _selectedTags : null, filters: {},
-      ),
-    );
+    context.read<DestinationBloc>().add(FilterDestinations(filters: filters));
   }
-  
+
   void _onSearch(String query) {
     setState(() {
       _searchQuery = query;
     });
-    
+
+    // Create a filters map
+    final Map<String, dynamic> filters = {};
+
+    // Add category filter
+    if (_selectedCategory != 'All') {
+      filters['category'] = _selectedCategory;
+    }
+
+    // Add search query if exists
+    if (query.isNotEmpty) {
+      filters['searchQuery'] = query;
+    }
+
+    // Add filter parameters if applied
+    if (_isFilterApplied) {
+      filters['minPrice'] = _priceRange.start;
+      filters['maxPrice'] = _priceRange.end;
+
+      if (_minRating > 0) {
+        filters['minRating'] = _minRating;
+      }
+
+      if (_selectedRegions.isNotEmpty) {
+        filters['regions'] = _selectedRegions;
+      }
+
+      if (_selectedTags.isNotEmpty) {
+        filters['tags'] = _selectedTags;
+      }
+    }
+
     // Update destinations based on search query
-    context.read<DestinationBloc>().add(
-      FilterDestinations(
-        category: _selectedCategory != 'All' ? _selectedCategory : null,
-        searchQuery: query.isNotEmpty ? query : null,
-        minPrice: _isFilterApplied ? _priceRange.start : null,
-        maxPrice: _isFilterApplied ? _priceRange.end : null,
-        minRating: _isFilterApplied && _minRating > 0 ? _minRating : null,
-        regions: _isFilterApplied && _selectedRegions.isNotEmpty ? _selectedRegions : null,
-        tags: _isFilterApplied && _selectedTags.isNotEmpty ? _selectedTags : null, filters: {},
-      ),
-    );
+    context.read<DestinationBloc>().add(FilterDestinations(filters: filters));
   }
-  
+
   void _showFilterModal() {
     showModalBottomSheet(
       context: context,
@@ -107,7 +152,7 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
       ),
     );
   }
-  
+
   void _applyFilter({
     required RangeValues priceRange,
     required double minRating,
@@ -121,21 +166,40 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
       _selectedTags = selectedTags;
       _isFilterApplied = true;
     });
-    
+
+    // Create a filters map
+    final Map<String, dynamic> filters = {};
+
+    // Add category filter
+    if (_selectedCategory != 'All') {
+      filters['category'] = _selectedCategory;
+    }
+
+    // Add search query if exists
+    if (_searchQuery.isNotEmpty) {
+      filters['searchQuery'] = _searchQuery;
+    }
+
+    // Add filter parameters
+    filters['minPrice'] = priceRange.start;
+    filters['maxPrice'] = priceRange.end;
+
+    if (minRating > 0) {
+      filters['minRating'] = minRating;
+    }
+
+    if (selectedRegions.isNotEmpty) {
+      filters['regions'] = selectedRegions;
+    }
+
+    if (selectedTags.isNotEmpty) {
+      filters['tags'] = selectedTags;
+    }
+
     // Update destinations based on filter
-    context.read<DestinationBloc>().add(
-      FilterDestinations(
-        category: _selectedCategory != 'All' ? _selectedCategory : null,
-        searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
-        minPrice: priceRange.start,
-        maxPrice: priceRange.end,
-        minRating: minRating > 0 ? minRating : null,
-        regions: selectedRegions.isNotEmpty ? selectedRegions : null,
-        tags: selectedTags.isNotEmpty ? selectedTags : null, filters: {},
-      ),
-    );
+    context.read<DestinationBloc>().add(FilterDestinations(filters: filters));
   }
-  
+
   void _resetFilter() {
     setState(() {
       _priceRange = RangeValues(0, 1000);
@@ -144,16 +208,23 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
       _selectedTags = [];
       _isFilterApplied = false;
     });
-    
+
+    // Create a filters map
+    final Map<String, dynamic> filters = {};
+
+    // Only add category and search query filters if applicable
+    if (_selectedCategory != 'All') {
+      filters['category'] = _selectedCategory;
+    }
+
+    if (_searchQuery.isNotEmpty) {
+      filters['searchQuery'] = _searchQuery;
+    }
+
     // Reset destinations filter
-    context.read<DestinationBloc>().add(
-      FilterDestinations(
-        category: _selectedCategory != 'All' ? _selectedCategory : null,
-        searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null, filters: {},
-      ),
-    );
+    context.read<DestinationBloc>().add(FilterDestinations(filters: filters));
   }
-  
+
   void _navigateToDestinationDetails(String destinationId) {
     Navigator.pushNamed(
       context,
@@ -161,17 +232,18 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
       arguments: destinationId,
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Discover',
         actions: [
           IconButton(
-            icon: Icon(_isFilterApplied ? Icons.filter_list_alt : Icons.filter_list),
+            icon: Icon(
+                _isFilterApplied ? Icons.filter_list_alt : Icons.filter_list),
             onPressed: _showFilterModal,
             color: _isFilterApplied ? theme.colorScheme.primary : null,
           ),
@@ -192,14 +264,14 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                       hintText: 'Search destinations',
                       prefixIcon: Icon(Icons.search),
                       suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              _onSearch('');
-                            },
-                          )
-                        : null,
+                          ? IconButton(
+                              icon: Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                _onSearch('');
+                              },
+                            )
+                          : null,
                       filled: true,
                       fillColor: theme.colorScheme.surface,
                       border: OutlineInputBorder(
@@ -213,17 +285,24 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
               ],
             ),
           ),
-          
+
           // Categories section
           Container(
             height: 60,
             child: CategorySelector(
-              categories: ['All', 'Beach', 'Mountain', 'Cultural', 'Wildlife', 'Adventure'],
+              categories: [
+                'All',
+                'Beach',
+                'Mountain',
+                'Cultural',
+                'Wildlife',
+                'Adventure'
+              ],
               selectedCategory: _selectedCategory,
               onCategorySelected: _onCategorySelected,
             ),
           ),
-          
+
           // Filter chips section (only shown when filters are applied)
           if (_isFilterApplied)
             Container(
@@ -247,7 +326,6 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                         );
                       },
                     ),
-                  
                   if (_selectedTags.isNotEmpty)
                     _buildFilterChip(
                       'Tags: ${_selectedTags.length}',
@@ -263,7 +341,6 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                         );
                       },
                     ),
-                  
                   if (_minRating > 0)
                     _buildFilterChip(
                       'Rating: ${_minRating.toStringAsFixed(1)}+',
@@ -279,7 +356,6 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                         );
                       },
                     ),
-                  
                   _buildFilterChip(
                     'Reset All',
                     _resetFilter,
@@ -288,15 +364,15 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                 ],
               ),
             ),
-          
+
           // Main content
           Expanded(
             child: BlocBuilder<DestinationBloc, DestinationState>(
               builder: (context, state) {
                 if (state is DestinationsLoading && !state.isFiltering) {
-                  return Center(child: LoadingSpinner());
+                  return Center(child: CircularProgressIndicator());
                 }
-                
+
                 if (state is DestinationsError) {
                   return Center(
                     child: Column(
@@ -320,19 +396,22 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                         ),
                         SizedBox(height: 24),
                         ElevatedButton(
-                          onPressed: () => context.read<DestinationBloc>().add(LoadDestinations()),
+                          onPressed: () => context
+                              .read<DestinationBloc>()
+                              .add(LoadDestinations()),
                           child: Text('Try Again'),
                         ),
                       ],
                     ),
                   );
                 }
-                
-                if (state is DestinationsLoaded || (state is DestinationsLoading && state.isFiltering)) {
+
+                if (state is DestinationsLoaded ||
+                    (state is DestinationsLoading && state.isFiltering)) {
                   final destinations = state is DestinationsLoaded
-                    ? state.destinations
-                    : (state as DestinationsLoading).lastLoadedDestinations;
-                  
+                      ? state.destinations
+                      : (state as DestinationsLoading).lastLoadedDestinations;
+
                   if (destinations.isEmpty) {
                     return Center(
                       child: Column(
@@ -363,15 +442,16 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                       ),
                     );
                   }
-                  
+
                   // Separate featured destinations (for this example, considering top 5 rated as featured)
                   final featuredDestinations = List.of(destinations)
                     ..sort((a, b) => b.rating.compareTo(a.rating));
-                  
+
                   if (featuredDestinations.length > 5) {
-                    featuredDestinations.removeRange(5, featuredDestinations.length);
+                    featuredDestinations.removeRange(
+                        5, featuredDestinations.length);
                   }
-                  
+
                   return RefreshIndicator(
                     onRefresh: () async {
                       context.read<DestinationBloc>().add(LoadDestinations());
@@ -380,12 +460,14 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                       padding: EdgeInsets.zero,
                       children: [
                         // Featured destinations carousel
-                        if (featuredDestinations.isNotEmpty && _searchQuery.isEmpty)
+                        if (featuredDestinations.isNotEmpty &&
+                            _searchQuery.isEmpty)
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 16, 16, 8),
                                 child: Text(
                                   'Featured Destinations',
                                   style: theme.textTheme.titleMedium?.copyWith(
@@ -398,7 +480,8 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                                 options: CarouselOptions(
                                   height: 220,
                                   viewportFraction: 0.9,
-                                  enableInfiniteScroll: featuredDestinations.length > 1,
+                                  enableInfiniteScroll:
+                                      featuredDestinations.length > 1,
                                   enlargeCenterPage: true,
                                   onPageChanged: (index, reason) {
                                     setState(() {
@@ -410,7 +493,7 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                                   return Builder(
                                     builder: (BuildContext context) {
                                       return _buildFeaturedDestinationCard(
-                                        context, 
+                                        context,
                                         destination,
                                       );
                                     },
@@ -420,15 +503,22 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                               SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: featuredDestinations.asMap().entries.map((entry) {
+                                children: featuredDestinations
+                                    .asMap()
+                                    .entries
+                                    .map((entry) {
                                   return Container(
                                     width: 8.0,
                                     height: 8.0,
-                                    margin: EdgeInsets.symmetric(horizontal: 4.0),
+                                    margin:
+                                        EdgeInsets.symmetric(horizontal: 4.0),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: theme.colorScheme.primary.withOpacity(
-                                        _currentFeaturedIndex == entry.key ? 0.9 : 0.4,
+                                      color:
+                                          theme.colorScheme.primary.withOpacity(
+                                        _currentFeaturedIndex == entry.key
+                                            ? 0.9
+                                            : 0.4,
                                       ),
                                     ),
                                   );
@@ -438,7 +528,7 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                               Divider(),
                             ],
                           ),
-                        
+
                         // All destinations section
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -447,13 +537,14 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                             children: [
                               Text(
                                 _searchQuery.isNotEmpty
-                                  ? 'Search Results'
-                                  : 'All Destinations',
+                                    ? 'Search Results'
+                                    : 'All Destinations',
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              if (state is DestinationsLoading && state.isFiltering)
+                              if (state is DestinationsLoading &&
+                                  state.isFiltering)
                                 SizedBox(
                                   width: 20,
                                   height: 20,
@@ -464,13 +555,14 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                             ],
                           ),
                         ),
-                        
+
                         // Grid of destinations
                         GridView.builder(
                           padding: EdgeInsets.all(16),
                           shrinkWrap: true,
                           physics: NeverScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
                             childAspectRatio: 0.75,
                             crossAxisSpacing: 16,
@@ -490,7 +582,7 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                     ),
                   );
                 }
-                
+
                 // Default loading state
                 return Center(
                   child: CircularProgressIndicator(),
@@ -502,10 +594,11 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
       ),
     );
   }
-  
-  Widget _buildFeaturedDestinationCard(BuildContext context, Destination destination) {
+
+  Widget _buildFeaturedDestinationCard(
+      BuildContext context, Destination destination) {
     final theme = Theme.of(context);
-    
+
     return GestureDetector(
       onTap: () => _navigateToDestinationDetails(destination.id),
       child: Container(
@@ -542,7 +635,7 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                   ),
                 ),
               ),
-              
+
               // Gradient overlay
               Positioned.fill(
                 child: Container(
@@ -559,7 +652,7 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                   ),
                 ),
               ),
-              
+
               // Content
               Positioned(
                 bottom: 0,
@@ -578,9 +671,9 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      
+
                       SizedBox(height: 4),
-                      
+
                       // Location and rating
                       Row(
                         children: [
@@ -618,9 +711,9 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                           ),
                         ],
                       ),
-                      
+
                       SizedBox(height: 8),
-                      
+
                       // Tags
                       Wrap(
                         spacing: 8,
@@ -649,7 +742,7 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
                   ),
                 ),
               ),
-              
+
               // Featured badge
               Positioned(
                 top: 16,
@@ -679,30 +772,27 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
       ),
     );
   }
-  
-  Widget _buildFilterChip(String label, VoidCallback onTap, {bool isReset = false}) {
+
+  Widget _buildFilterChip(String label, VoidCallback onTap,
+      {bool isReset = false}) {
     final theme = Theme.of(context);
-    
+
     return Container(
       margin: EdgeInsets.only(right: 8, top: 8, bottom: 8),
       child: FilterChip(
         label: Text(label),
         onSelected: (_) => onTap(),
         backgroundColor: isReset
-          ? theme.colorScheme.error.withOpacity(0.1)
-          : theme.colorScheme.primary.withOpacity(0.1),
+            ? theme.colorScheme.error.withOpacity(0.1)
+            : theme.colorScheme.primary.withOpacity(0.1),
         labelStyle: TextStyle(
-          color: isReset
-            ? theme.colorScheme.error
-            : theme.colorScheme.primary,
+          color: isReset ? theme.colorScheme.error : theme.colorScheme.primary,
           fontWeight: FontWeight.w500,
         ),
         deleteIcon: Icon(
           isReset ? Icons.refresh : Icons.close,
           size: 18,
-          color: isReset
-            ? theme.colorScheme.error
-            : theme.colorScheme.primary,
+          color: isReset ? theme.colorScheme.error : theme.colorScheme.primary,
         ),
         onDeleted: onTap,
       ),
@@ -712,6 +802,6 @@ class _DestinationDiscoveryScreenState extends State<DestinationDiscoveryScreen>
 
 extension on DestinationsLoading {
   bool get isFiltering => true;
-  
+
   get lastLoadedDestinations => null;
 }

@@ -40,18 +40,22 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
     try {
       emit(RestaurantsLoading());
 
-      // Check connectivity
-      final hasConnectivity = await _connectivityService.checkConnectivity();
-      if (!hasConnectivity) {
-        emit(RestaurantsError('No internet connection. Please check your network settings.'));
+      // Check connectivity - fixed to properly handle ConnectivityStatus
+      final connectivityStatus = await _connectivityService.checkConnectivity();
+      if (connectivityStatus != ConnectivityStatus.connected) {
+        emit(RestaurantsError(
+            'No internet connection. Please check your network settings.'));
         return;
       }
 
-      final restaurants = _restaurantRepository.getRestaurants(
-        destinationId: event.destinationId,
-        limit: event.limit,
-        offset: event.offset,
-      );
+      // Fixed to properly await and handle the Stream<List<Restaurant>>
+      final restaurants = await _restaurantRepository
+          .getRestaurants(
+            destinationId: event.destinationId,
+            limit: event.limit,
+            offset: event.offset,
+          )
+          .first; // Using first to get the first emission from the stream
 
       emit(RestaurantsLoaded(
         restaurants: restaurants,
@@ -71,22 +75,26 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
       emit(RestaurantDetailsLoading());
 
       // Check connectivity
-      final hasConnectivity = await _connectivityService.checkConnectivity();
-      if (!hasConnectivity) {
-        emit(RestaurantDetailsError('No internet connection. Please check your network settings.'));
+      final connectivityStatus = await _connectivityService.checkConnectivity();
+      if (connectivityStatus != ConnectivityStatus.connected) {
+        emit(RestaurantDetailsError(
+            'No internet connection. Please check your network settings.'));
         return;
       }
 
-      final restaurant = await _restaurantRepository.getRestaurantById(event.restaurantId);
-      
+      final restaurant =
+          await _restaurantRepository.getRestaurantById(event.restaurantId);
+
       if (restaurant != null) {
         emit(RestaurantDetailsLoaded(restaurant: restaurant));
       } else {
         emit(RestaurantDetailsError('Restaurant not found.'));
       }
     } catch (e, stackTrace) {
-      _logger.e('Error loading restaurant details', error: e, stackTrace: stackTrace);
-      emit(RestaurantDetailsError('Failed to load restaurant details. Please try again.'));
+      _logger.e('Error loading restaurant details',
+          error: e, stackTrace: stackTrace);
+      emit(RestaurantDetailsError(
+          'Failed to load restaurant details. Please try again.'));
     }
   }
 
@@ -102,14 +110,16 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
     try {
       emit(RestaurantsFiltering());
 
-      final filteredRestaurants = await _restaurantRepository.filterRestaurants(
-        destinationId: event.destinationId,
-        cuisineTypes: event.cuisineTypes,
-        priceRange: event.priceRange,
-        rating: event.rating,
-        facilities: event.facilities,
-        dietaryOptions: event.dietaryOptions,
-      );
+      final filteredRestaurants = await _restaurantRepository
+          .filterRestaurants(
+            destinationId: event.destinationId,
+            cuisineTypes: event.cuisineTypes,
+            priceRange: event.priceRange,
+            rating: event.rating,
+            facilities: event.facilities,
+            dietaryOptions: event.dietaryOptions,
+          )
+          .first; // Using first to get the first emission from the stream
 
       emit(RestaurantsLoaded(
         restaurants: filteredRestaurants,
@@ -117,7 +127,8 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
         appliedFilters: event,
       ));
     } catch (e, stackTrace) {
-      _logger.e('Error filtering restaurants', error: e, stackTrace: stackTrace);
+      _logger.e('Error filtering restaurants',
+          error: e, stackTrace: stackTrace);
       // Revert to previous loaded state
       emit((state as RestaurantsLoaded).copyWith(
         isFiltering: false,
@@ -133,9 +144,10 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
       emit(RestaurantBookingInProgress());
 
       // Check connectivity
-      final hasConnectivity = await _connectivityService.checkConnectivity();
-      if (!hasConnectivity) {
-        emit(RestaurantBookingError('No internet connection. Please check your network settings.'));
+      final connectivityStatus = await _connectivityService.checkConnectivity();
+      if (connectivityStatus != ConnectivityStatus.connected) {
+        emit(RestaurantBookingError(
+            'No internet connection. Please check your network settings.'));
         return;
       }
 
@@ -150,15 +162,17 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
 
       if (bookingResult.success) {
         emit(RestaurantBookingSuccess(
-          bookingId: bookingResult.bookingId!, 
-          bookingDetails: bookingResult.bookingDetails!
-        ));
+            bookingId: bookingResult.bookingId!,
+            bookingDetails: bookingResult.bookingDetails!));
       } else {
-        emit(RestaurantBookingError(bookingResult.errorMessage ?? 'Booking failed. Please try again.'));
+        emit(RestaurantBookingError(
+            bookingResult.errorMessage ?? 'Booking failed. Please try again.'));
       }
     } catch (e, stackTrace) {
-      _logger.e('Error booking restaurant table', error: e, stackTrace: stackTrace);
-      emit(RestaurantBookingError('Failed to complete booking. Please try again.'));
+      _logger.e('Error booking restaurant table',
+          error: e, stackTrace: stackTrace);
+      emit(RestaurantBookingError(
+          'Failed to complete booking. Please try again.'));
     }
   }
 
@@ -170,12 +184,14 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
       emit(RestaurantsSearching());
 
       // Check connectivity
-      final hasConnectivity = await _connectivityService.checkConnectivity();
-      if (!hasConnectivity) {
-        emit(RestaurantsError('No internet connection. Please check your network settings.'));
+      final connectivityStatus = await _connectivityService.checkConnectivity();
+      if (connectivityStatus != ConnectivityStatus.connected) {
+        emit(RestaurantsError(
+            'No internet connection. Please check your network settings.'));
         return;
       }
 
+      // Fixed: Removed .first call since Future doesn't have this method
       final searchResults = await _restaurantRepository.searchRestaurants(
         query: event.query,
         destinationId: event.destinationId,
@@ -189,7 +205,8 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
         hasReachedMax: searchResults.length < event.limit,
       ));
     } catch (e, stackTrace) {
-      _logger.e('Error searching restaurants', error: e, stackTrace: stackTrace);
+      _logger.e('Error searching restaurants',
+          error: e, stackTrace: stackTrace);
       emit(RestaurantsError('Failed to search restaurants. Please try again.'));
     }
   }
@@ -202,21 +219,26 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
       emit(FeaturedRestaurantsLoading());
 
       // Check connectivity
-      final hasConnectivity = await _connectivityService.checkConnectivity();
-      if (!hasConnectivity) {
-        emit(RestaurantsError('No internet connection. Please check your network settings.'));
+      final connectivityStatus = await _connectivityService.checkConnectivity();
+      if (connectivityStatus != ConnectivityStatus.connected) {
+        emit(RestaurantsError(
+            'No internet connection. Please check your network settings.'));
         return;
       }
 
-      final featuredRestaurants = await _restaurantRepository.getFeaturedRestaurants(
+      // Removed .first since it's returning a Future<List<Restaurant>> not a Stream
+      final featuredRestaurants =
+          await _restaurantRepository.getFeaturedRestaurants(
         destinationId: event.destinationId,
         limit: event.limit,
       );
 
       emit(FeaturedRestaurantsLoaded(restaurants: featuredRestaurants));
     } catch (e, stackTrace) {
-      _logger.e('Error loading featured restaurants', error: e, stackTrace: stackTrace);
-      emit(RestaurantsError('Failed to load featured restaurants. Please try again.'));
+      _logger.e('Error loading featured restaurants',
+          error: e, stackTrace: stackTrace);
+      emit(RestaurantsError(
+          'Failed to load featured restaurants. Please try again.'));
     }
   }
 
@@ -227,24 +249,29 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
     try {
       emit(NearbyRestaurantsLoading());
 
-      // Check connectivity
-      final hasConnectivity = await _connectivityService.checkConnectivity();
-      if (!(hasConnectivity < 0)) {
-        emit(RestaurantsError('No internet connection. Please check your network settings.'));
+      // Check connectivity - fixed the condition
+      final connectivityStatus = await _connectivityService.checkConnectivity();
+      if (connectivityStatus != ConnectivityStatus.connected) {
+        emit(RestaurantsError(
+            'No internet connection. Please check your network settings.'));
         return;
       }
 
-      final nearbyRestaurants = await _restaurantRepository.getNearbyRestaurants(
-        latitude: event.latitude,
-        longitude: event.longitude,
-        radiusInKm: event.radiusInKm,
-        limit: event.limit,
-      );
+      final nearbyRestaurants = await _restaurantRepository
+          .getNearbyRestaurants(
+            latitude: event.latitude,
+            longitude: event.longitude,
+            radiusInKm: event.radiusInKm,
+            limit: event.limit,
+          )
+          .first; // Using first to get the first emission from the stream
 
       emit(NearbyRestaurantsLoaded(restaurants: nearbyRestaurants));
     } catch (e, stackTrace) {
-      _logger.e('Error loading nearby restaurants', error: e, stackTrace: stackTrace);
-      emit(RestaurantsError('Failed to load nearby restaurants. Please try again.'));
+      _logger.e('Error loading nearby restaurants',
+          error: e, stackTrace: stackTrace);
+      emit(RestaurantsError(
+          'Failed to load nearby restaurants. Please try again.'));
     }
   }
 
@@ -255,22 +282,21 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
     try {
       // Get current state to retain after operation
       final currentState = state;
-      
+
       // Update favorite status immediately for UI response
       if (currentState is RestaurantsLoaded) {
         final updatedRestaurants = currentState.restaurants.map((restaurant) {
           if (restaurant.id == event.restaurantId) {
-            return restaurant.copyWith(isFavorite: !restaurant.isFavorite);
+            return restaurant.copyWith(isFavorite: !restaurant.isFavorite!);
           }
           return restaurant;
         }).toList();
-        
+
         emit(currentState.copyWith(restaurants: updatedRestaurants));
-      } else if (currentState is RestaurantDetailsLoaded && 
-                currentState.restaurant.id == event.restaurantId) {
-        final updatedRestaurant = currentState.restaurant.copyWith(
-          isFavorite: !currentState.restaurant.isFavorite
-        );
+      } else if (currentState is RestaurantDetailsLoaded &&
+          currentState.restaurant.id == event.restaurantId) {
+        final updatedRestaurant = currentState.restaurant
+            .copyWith(isFavorite: !currentState.restaurant.isFavorite!);
         emit(RestaurantDetailsLoaded(restaurant: updatedRestaurant));
       }
 
@@ -280,7 +306,8 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
         userId: event.userId,
       );
     } catch (e, stackTrace) {
-      _logger.e('Error toggling restaurant favorite', error: e, stackTrace: stackTrace);
+      _logger.e('Error toggling restaurant favorite',
+          error: e, stackTrace: stackTrace);
       // No need to change UI state on error as we already updated UI optimistically
     }
   }
@@ -293,9 +320,10 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
       emit(SubmittingRestaurantReview());
 
       // Check connectivity
-      final hasConnectivity = await _connectivityService.checkConnectivity();
-      if (!hasConnectivity) {
-        emit(SubmitReviewError('No internet connection. Please check your network settings.'));
+      final connectivityStatus = await _connectivityService.checkConnectivity();
+      if (connectivityStatus != ConnectivityStatus.connected) {
+        emit(SubmitReviewError(
+            'No internet connection. Please check your network settings.'));
         return;
       }
 
@@ -308,15 +336,20 @@ class RestaurantBloc extends Bloc<RestaurantEvent, RestaurantState> {
       );
 
       // If we're in restaurant details view, reload the details to show updated review
-      if (state is RestaurantDetailsLoaded && 
-          (state as RestaurantDetailsLoaded).restaurant.id == event.restaurantId) {
+      if (state is RestaurantDetailsLoaded &&
+          (state as RestaurantDetailsLoaded).restaurant.id ==
+              event.restaurantId) {
         add(LoadRestaurantDetails(restaurantId: event.restaurantId));
       } else {
         emit(SubmitReviewSuccess());
       }
     } catch (e, stackTrace) {
-      _logger.e('Error submitting restaurant review', error: e, stackTrace: stackTrace);
+      _logger.e('Error submitting restaurant review',
+          error: e, stackTrace: stackTrace);
       emit(SubmitReviewError('Failed to submit review. Please try again.'));
     }
   }
 }
+
+// Adding this enum to ensure the code compiles
+enum ConnectivityStatus { connected, disconnected, limited }

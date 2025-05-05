@@ -12,7 +12,14 @@ enum TransportType {
   train,
   tuk,
   rental,
-  walk, ferry, flight, tuktuk, car, all,
+  walk,
+  ferry,
+  flight,
+  tuktuk,
+  car,
+  all,
+  motorcycle,
+  luxury,
 }
 
 /// Represents different pricing models for transportation
@@ -35,10 +42,10 @@ class Transport extends Equatable {
   final double pricePerMinute;
   final String currencyCode;
   final String iconUrl;
-  
+
   @JsonKey(fromJson: _durationFromJson, toJson: _durationToJson)
   final Duration estimatedWaitTime;
-  
+
   final double rating;
   final int reviewCount;
   final Map<String, dynamic>? additionalInfo;
@@ -62,7 +69,7 @@ class Transport extends Equatable {
   });
 
   /// Creates a Transport object from a map (typically from JSON)
-  factory Transport.fromJson(Map<String, dynamic> json) => 
+  factory Transport.fromJson(Map<String, dynamic> json) =>
       _$TransportFromJson(json);
 
   /// Converts the Transport object to a map (typically for JSON)
@@ -104,7 +111,8 @@ class Transport extends Equatable {
   }
 
   /// Calculate estimated fare for a given distance and time
-  double calculateEstimatedFare({required double distanceKm, required Duration travelTime}) {
+  double calculateEstimatedFare(
+      {required double distanceKm, required Duration travelTime}) {
     switch (pricingModel) {
       case PricingModel.fixed:
         return basePrice;
@@ -113,35 +121,35 @@ class Transport extends Equatable {
       case PricingModel.time:
         return basePrice + (pricePerMinute * travelTime.inMinutes);
       case PricingModel.combined:
-        return basePrice + 
-               (pricePerKm * distanceKm) + 
-               (pricePerMinute * travelTime.inMinutes);
+        return basePrice +
+            (pricePerKm * distanceKm) +
+            (pricePerMinute * travelTime.inMinutes);
     }
   }
 
   @override
   List<Object?> get props => [
-    id,
-    name,
-    type,
-    pricingModel,
-    basePrice,
-    pricePerKm,
-    pricePerMinute,
-    currencyCode,
-    iconUrl,
-    estimatedWaitTime,
-    rating,
-    reviewCount,
-    additionalInfo,
-    isAvailable,
-  ];
-  
+        id,
+        name,
+        type,
+        pricingModel,
+        basePrice,
+        pricePerKm,
+        pricePerMinute,
+        currencyCode,
+        iconUrl,
+        estimatedWaitTime,
+        rating,
+        reviewCount,
+        additionalInfo,
+        isAvailable,
+      ];
+
   @override
   String toString() {
     return 'Transport(id: $id, name: $name, type: $type, pricingModel: $pricingModel)';
   }
-  
+
   // Helper methods for JSON serialization of Duration
   static Duration _durationFromJson(int seconds) => Duration(seconds: seconds);
   static int _durationToJson(Duration duration) => duration.inSeconds;
@@ -155,24 +163,25 @@ class TransportBooking extends Equatable {
   final String userId;
   final String startLocationId;
   final String endLocationId;
-  
+
   final DateTime bookingTime;
   final DateTime scheduledTime;
   final DateTime? actualPickupTime;
   final DateTime? completionTime;
-  
+
   final double distance;
-  
+
   @JsonKey(fromJson: _durationFromJson, toJson: _durationToJson)
   final Duration estimatedDuration;
-  
+
   final double estimatedFare;
   final double? actualFare;
-  
+
   final String? driverName;
   final String? driverContact;
   final String? vehicleDetails;
-  final String bookingStatus; // pending, confirmed, in_progress, completed, cancelled
+  final String
+      bookingStatus; // pending, confirmed, in_progress, completed, cancelled
   final String? cancellationReason;
   final int? userRating;
   final String? userReview;
@@ -201,7 +210,7 @@ class TransportBooking extends Equatable {
   });
 
   /// Creates a TransportBooking object from a map (typically from JSON)
-  factory TransportBooking.fromJson(Map<String, dynamic> json) => 
+  factory TransportBooking.fromJson(Map<String, dynamic> json) =>
       _$TransportBookingFromJson(json);
 
   /// Converts the TransportBooking object to a map (typically for JSON)
@@ -256,33 +265,33 @@ class TransportBooking extends Equatable {
 
   @override
   List<Object?> get props => [
-    id,
-    transport,
-    userId,
-    startLocationId,
-    endLocationId,
-    bookingTime,
-    scheduledTime,
-    actualPickupTime,
-    completionTime,
-    distance,
-    estimatedDuration,
-    estimatedFare,
-    actualFare,
-    driverName,
-    driverContact,
-    vehicleDetails,
-    bookingStatus,
-    cancellationReason,
-    userRating,
-    userReview,
-  ];
+        id,
+        transport,
+        userId,
+        startLocationId,
+        endLocationId,
+        bookingTime,
+        scheduledTime,
+        actualPickupTime,
+        completionTime,
+        distance,
+        estimatedDuration,
+        estimatedFare,
+        actualFare,
+        driverName,
+        driverContact,
+        vehicleDetails,
+        bookingStatus,
+        cancellationReason,
+        userRating,
+        userReview,
+      ];
 
   @override
   String toString() {
     return 'TransportBooking(id: $id, transport: ${transport.name}, status: $bookingStatus)';
   }
-  
+
   // Helper methods for JSON serialization of Duration
   static Duration _durationFromJson(int seconds) => Duration(seconds: seconds);
   static int _durationToJson(Duration duration) => duration.inSeconds;

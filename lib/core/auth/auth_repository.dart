@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/foundation.dart';
-import 'package:taprobana_trails/bloc/auth/auth_bloc.dart' as app_user show AppUser;
+import 'package:taprobana_trails/bloc/auth/auth_bloc.dart' as app_user
+    show AppUser;
 import 'package:taprobana_trails/core/auth/auth_service.dart';
 import 'package:taprobana_trails/core/auth/google_auth.dart';
 import 'package:taprobana_trails/core/storage/secure_storage.dart';
-import 'package:taprobana_trails/data/models/user.dart' as app_user;
+import 'package:taprobana_trails/data/models/user.dart';
+import 'package:taprobana_trails/data/models/app_user.dart';
 import 'package:taprobana_trails/data/repositories/user_repository.dart';
 import 'package:taprobana_trails/config/constants.dart';
 
@@ -30,25 +32,26 @@ class AuthRepository {
   final GoogleAuthService _googleAuthService;
   final UserRepository _userRepository;
   final SecureStorage _secureStorage;
-  final StreamController<app_user.AppUser?> _userController = StreamController<app_user.AppUser?>.broadcast();
-  
+  final StreamController<AppUser?> _userController =
+      StreamController<AppUser?>.broadcast();
+
   /// Stream of user changes.
-  Stream<app_user.AppUser?> get user => _userController.stream;
-  
+  Stream<AppUser?> get user => _userController.stream;
+
   /// Creates a new [AuthRepository] instance.
   AuthRepository({
     AuthService? authService,
     GoogleAuthService? googleAuthService,
     UserRepository? userRepository,
     SecureStorage? secureStorage,
-  }) : _authService = authService ?? AuthService(),
-       _googleAuthService = googleAuthService ?? GoogleAuthService(),
-       _userRepository = userRepository ?? UserRepository(),
-       _secureStorage = secureStorage ?? SecureStorage() {
+  })  : _authService = authService ?? AuthService(),
+        _googleAuthService = googleAuthService ?? GoogleAuthService(),
+        _userRepository = userRepository ?? UserRepository(),
+        _secureStorage = secureStorage ?? SecureStorage() {
     // Listen to Firebase auth changes
     _subscribeToUserChanges();
   }
-  
+
   /// Subscribes to user changes from Firebase.
   void _subscribeToUserChanges() {
     _authService.userChanges.listen((firebase_auth.User? firebaseUser) async {
@@ -57,71 +60,68 @@ class AuthRepository {
         _userController.add(null);
         return;
       }
-      
-      // Get the complete user data from Firestore
+
       try {
+        // Get user from repository
         final user = await _userRepository.getUser(firebaseUser.uid);
-        
+
         if (user != null) {
-          // Store user ID for quick access
           await _secureStorage.write(key: StorageKeys.userId, value: user.id);
-          
-          // Add to stream
-          _userController.add(user);
+          _userController.add(user as AppUser?);
         } else {
-          // Create new user in Firestore if it doesn't exist
-          final newUser = app_user.AppUser(
+          // Create new AppUser
+          final newUser = User(
             id: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoUrl: firebaseUser.photoURL,
+            email: firebaseUser.email ?? '',
+            displayName: firebaseUser.displayName ?? '',
+            profilePhotoUrl: firebaseUser.photoURL,
             isEmailVerified: firebaseUser.emailVerified,
             createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
           );
-          
+
           await _userRepository.saveUser(newUser);
-          await _secureStorage.write(key: StorageKeys.userId, value: newUser.id);
-          
-          // Add to stream
-          _userController.add(newUser);
+          await _secureStorage.write(
+              key: StorageKeys.userId, value: newUser.id);
+          _userController.add(newUser as AppUser?);
         }
       } catch (e) {
         debugPrint('Error getting user data: $e');
-        
-        // Still provide basic user info from Firebase Auth
-        final basicUser = app_user.AppUser(
+
+        // Create a basic AppUser
+        final basicUser = AppUser(
           id: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoUrl: firebaseUser.photoURL,
+          email: firebaseUser.email ?? '',
+          displayName: firebaseUser.displayName ?? '',
           isEmailVerified: firebaseUser.emailVerified,
+          profilePhotoUrl: firebaseUser.photoURL!,
         );
-        
-        await _secureStorage.write(key: StorageKeys.userId, value: basicUser.id);
+
+        await _secureStorage.write(
+            key: StorageKeys.userId, value: basicUser.id);
         _userController.add(basicUser);
       }
     });
   }
-  
+
   /// Signs in with email and password.
-  Future<app_user.AppUser> signInWithEmailAndPassword({
+  Future<AppUser> signInWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
     try {
-      final user = await _authService.signInWithEmailAndPassword(email, password);
-      
+      final user =
+          await _authService.signInWithEmailAndPassword(email, password);
+
       if (user == null) {
         throw AuthException(
           message: 'Failed to sign in',
           code: 'sign_in_failed',
         );
       }
-      
+
       // Update last login timestamp
       await _userRepository.updateLastLoginTimestamp(user.id);
-      
+
       return user;
     } on firebase_auth.FirebaseAuthException catch (e) {
       throw _handleFirebaseAuthException(e);
@@ -129,29 +129,29 @@ class AuthRepository {
       if (e is AuthException) {
         rethrow;
       }
-      
+
       throw AuthException(
         message: 'An error occurred during sign in: ${e.toString()}',
         code: 'unknown_error',
       );
     }
   }
-  
+
   /// Signs in with Google.
-  Future<app_user.AppUser> signInWithGoogle() async {
+  Future<AppUser> signInWithGoogle() async {
     try {
       final user = await _authService.signInWithGoogle();
-      
+
       if (user == null) {
         throw AuthException(
           message: 'Failed to sign in with Google',
           code: 'google_sign_in_failed',
         );
       }
-      
+
       // Update last login timestamp
       await _userRepository.updateLastLoginTimestamp(user.id);
-      
+
       return user;
     } on firebase_auth.FirebaseAuthException catch (e) {
       throw _handleFirebaseAuthException(e);
@@ -159,38 +159,39 @@ class AuthRepository {
       if (e is AuthException) {
         rethrow;
       }
-      
+
       throw AuthException(
         message: 'An error occurred during Google sign in: ${e.toString()}',
         code: 'unknown_error',
       );
     }
   }
-  
+
   /// Creates a new user with email and password.
-  Future<app_user.AppUser> createUserWithEmailAndPassword({
+  Future<AppUser> createUserWithEmailAndPassword({
     required String email,
     required String password,
     String? displayName,
   }) async {
     try {
-      final user = await _authService.createUserWithEmailAndPassword(email, password);
-      
+      final user =
+          await _authService.createUserWithEmailAndPassword(email, password);
+
       if (user == null) {
         throw AuthException(
           message: 'Failed to create user',
           code: 'create_user_failed',
         );
       }
-      
+
       // Update display name if provided
       if (displayName != null && displayName.isNotEmpty) {
         await _authService.updateUserProfile(displayName: displayName);
       }
-      
+
       // Send email verification
       await _authService.sendEmailVerification();
-      
+
       return user;
     } on firebase_auth.FirebaseAuthException catch (e) {
       throw _handleFirebaseAuthException(e);
@@ -198,14 +199,14 @@ class AuthRepository {
       if (e is AuthException) {
         rethrow;
       }
-      
+
       throw AuthException(
         message: 'An error occurred during registration: ${e.toString()}',
         code: 'unknown_error',
       );
     }
   }
-  
+
   /// Signs out the current user.
   Future<void> signOut() async {
     try {
@@ -219,7 +220,7 @@ class AuthRepository {
       );
     }
   }
-  
+
   /// Sends a password reset email.
   Future<void> sendPasswordResetEmail({required String email}) async {
     try {
@@ -233,7 +234,7 @@ class AuthRepository {
       );
     }
   }
-  
+
   /// Updates the user profile.
   Future<void> updateProfile({
     String? displayName,
@@ -246,14 +247,14 @@ class AuthRepository {
     try {
       // Get current user
       final currentUser = _authService.getCurrentAppUser();
-      
+
       if (currentUser == null) {
         throw AuthException(
           message: 'User not authenticated',
           code: 'user_not_authenticated',
         );
       }
-      
+
       // Update Firebase Auth profile
       if (displayName != null || photoUrl != null) {
         await _authService.updateUserProfile(
@@ -261,7 +262,7 @@ class AuthRepository {
           photoUrl: photoUrl,
         );
       }
-      
+
       // Update Firestore user profile
       await _userRepository.updateProfile(
         currentUser.id,
@@ -276,14 +277,14 @@ class AuthRepository {
       if (e is AuthException) {
         rethrow;
       }
-      
+
       throw AuthException(
         message: 'Failed to update profile: ${e.toString()}',
         code: 'update_profile_failed',
       );
     }
   }
-  
+
   /// Updates the user's email.
   Future<void> updateEmail({
     required String email,
@@ -292,22 +293,22 @@ class AuthRepository {
     try {
       // Reauthenticate the user first
       final currentUser = _authService.getCurrentAppUser();
-      
+
       if (currentUser == null || currentUser.email == null) {
         throw AuthException(
           message: 'User not authenticated or no email associated',
           code: 'user_not_authenticated',
         );
       }
-      
+
       await _authService.reauthenticateWithCredential(
         currentUser.email!,
         password,
       );
-      
+
       // Update email
       await _authService.updateEmail(email);
-      
+
       // Send verification email
       await _authService.sendEmailVerification();
     } on firebase_auth.FirebaseAuthException catch (e) {
@@ -316,14 +317,14 @@ class AuthRepository {
       if (e is AuthException) {
         rethrow;
       }
-      
+
       throw AuthException(
         message: 'Failed to update email: ${e.toString()}',
         code: 'update_email_failed',
       );
     }
   }
-  
+
   /// Updates the user's password.
   Future<void> updatePassword({
     required String currentPassword,
@@ -332,19 +333,19 @@ class AuthRepository {
     try {
       // Reauthenticate the user first
       final currentUser = _authService.getCurrentAppUser();
-      
+
       if (currentUser == null || currentUser.email == null) {
         throw AuthException(
           message: 'User not authenticated or no email associated',
           code: 'user_not_authenticated',
         );
       }
-      
+
       await _authService.reauthenticateWithCredential(
         currentUser.email!,
         currentPassword,
       );
-      
+
       // Update password
       await _authService.updatePassword(newPassword);
     } on firebase_auth.FirebaseAuthException catch (e) {
@@ -353,14 +354,14 @@ class AuthRepository {
       if (e is AuthException) {
         rethrow;
       }
-      
+
       throw AuthException(
         message: 'Failed to update password: ${e.toString()}',
         code: 'update_password_failed',
       );
     }
   }
-  
+
   /// Updates the notification settings.
   Future<void> updateNotificationSettings({
     required String userId,
@@ -380,7 +381,7 @@ class AuthRepository {
       );
     }
   }
-  
+
   /// Updates the onboarding status.
   Future<void> updateOnboardingStatus({
     required String userId,
@@ -398,7 +399,7 @@ class AuthRepository {
       );
     }
   }
-  
+
   /// Deletes the current user account.
   Future<void> deleteAccount({
     required String password,
@@ -406,25 +407,25 @@ class AuthRepository {
     try {
       // Reauthenticate the user first
       final currentUser = _authService.getCurrentAppUser();
-      
+
       if (currentUser == null || currentUser.email == null) {
         throw AuthException(
           message: 'User not authenticated or no email associated',
           code: 'user_not_authenticated',
         );
       }
-      
+
       await _authService.reauthenticateWithCredential(
         currentUser.email!,
         password,
       );
-      
+
       // Delete user data from Firestore
       await _userRepository.deleteUser(currentUser.id);
-      
+
       // Delete user from Firebase Auth
       await _authService.deleteUser();
-      
+
       // Clear local auth data
       await _clearAuthData();
     } on firebase_auth.FirebaseAuthException catch (e) {
@@ -433,37 +434,37 @@ class AuthRepository {
       if (e is AuthException) {
         rethrow;
       }
-      
+
       throw AuthException(
         message: 'Failed to delete account: ${e.toString()}',
         code: 'delete_account_failed',
       );
     }
   }
-  
+
   /// Gets the current user.
-  app_user.AppUser? getCurrentUser() {
+  AppUser? getCurrentUser() {
     return _authService.getCurrentAppUser();
   }
-  
+
   /// Checks if a user is currently signed in.
   bool isSignedIn() {
     return _authService.currentUser != null;
   }
-  
+
   /// Gets the current user ID.
   Future<String?> getUserId() async {
     // Try to get from secure storage first for quicker access
     final storedId = await _secureStorage.read(key: StorageKeys.userId);
-    
+
     if (storedId != null && storedId.isNotEmpty) {
       return storedId;
     }
-    
+
     // Fall back to Auth service
     return _authService.currentUser?.uid;
   }
-  
+
   /// Sends an email verification.
   Future<void> sendEmailVerification() async {
     try {
@@ -475,45 +476,47 @@ class AuthRepository {
       );
     }
   }
-  
+
   /// Refreshes the current user data.
-  Future<app_user.AppUser?> refreshUser() async {
+  Future<User?> refreshUser() async {
     try {
       final currentUser = _authService.getCurrentAppUser();
-      
+
       if (currentUser == null) {
         return null;
       }
-      
+
       final user = await _userRepository.getUser(currentUser.id);
-      
+
       if (user != null) {
-        _userController.add(user);
+        _userController.add(user as AppUser?);
       }
-      
+
       return user;
     } catch (e) {
       debugPrint('Error refreshing user: $e');
       return null;
     }
   }
-  
+
   /// Checks if an email is already in use.
   Future<bool> isEmailInUse(String email) async {
     try {
-      final methods = await firebase_auth.FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
+      final methods = await firebase_auth.FirebaseAuth.instance
+          .fetchSignInMethodsForEmail(email);
       return methods.isNotEmpty;
     } catch (e) {
       debugPrint('Error checking if email is in use: $e');
       return false;
     }
   }
-  
+
   /// Handles Firebase Auth exceptions and converts them to AuthExceptions.
-  AuthException _handleFirebaseAuthException(firebase_auth.FirebaseAuthException e) {
+  AuthException _handleFirebaseAuthException(
+      firebase_auth.FirebaseAuthException e) {
     String message;
     String code;
-    
+
     switch (e.code) {
       case 'user-not-found':
         message = 'No user found with this email.';
@@ -544,7 +547,8 @@ class AuthRepository {
         code = 'weak_password';
         break;
       case 'requires-recent-login':
-        message = 'This operation requires recent authentication. Please log in again.';
+        message =
+            'This operation requires recent authentication. Please log in again.';
         code = 'requires_recent_login';
         break;
       case 'too-many-requests':
@@ -559,28 +563,28 @@ class AuthRepository {
         message = e.message ?? 'An authentication error occurred.';
         code = e.code;
     }
-    
+
     return AuthException(
       message: message,
       code: code,
     );
   }
-  
+
   /// Clears all authentication data.
   Future<void> _clearAuthData() async {
     await _secureStorage.delete(key: StorageKeys.userId);
     await _secureStorage.delete(key: StorageKeys.authToken);
     await _secureStorage.delete(key: StorageKeys.refreshToken);
   }
-  
+
   /// Disposes the repository.
   void dispose() {
     _userController.close();
   }
 }
 
-extension on app_user.AppUser {
+extension on AppUser {
   get email => null;
-  
+
   String get id => "";
 }

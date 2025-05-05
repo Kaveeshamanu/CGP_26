@@ -60,7 +60,8 @@ class ActivityCard extends StatelessWidget {
                     _buildTitle(),
                     const SizedBox(height: 4),
                     _buildLocation(),
-                    if (activity.notes != null && activity.notes!.isNotEmpty) ...[
+                    if (activity.notes != null &&
+                        activity.notes!.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       _buildNotes(),
                     ],
@@ -84,7 +85,7 @@ class ActivityCard extends StatelessWidget {
         imageUrl: activity.imageUrl!,
         fit: BoxFit.cover,
         placeholder: (context, url) => const Center(
-          child: CircularProgressLoader(size: 24),
+          child: CircularProgressIndicator(),
         ),
         errorWidget: (context, url, error) => Container(
           color: Colors.grey[200],
@@ -99,7 +100,7 @@ class ActivityCard extends StatelessWidget {
 
   Widget _buildTimeAndCategory() {
     final timeFormatter = DateFormat('h:mm a');
-    
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -231,7 +232,7 @@ class ActivityCard extends StatelessWidget {
               color: Colors.green[700],
             ),
           ),
-        
+
         // Action buttons
         if (isEditable)
           Row(
@@ -244,8 +245,7 @@ class ActivityCard extends StatelessWidget {
                   color: Colors.blue,
                   onPressed: onEdit,
                 ),
-              if (onEdit != null && onDelete != null)
-                const SizedBox(width: 16),
+              if (onEdit != null && onDelete != null) const SizedBox(width: 16),
               if (onDelete != null)
                 IconButton(
                   icon: const Icon(Icons.delete_outline, size: 18),
@@ -259,8 +259,7 @@ class ActivityCard extends StatelessWidget {
                       builder: (context) => AlertDialog(
                         title: const Text('Delete Activity'),
                         content: const Text(
-                          'Are you sure you want to delete this activity from your itinerary?'
-                        ),
+                            'Are you sure you want to delete this activity from your itinerary?'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(),

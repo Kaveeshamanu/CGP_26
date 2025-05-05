@@ -15,7 +15,6 @@ import '../../data/models/destination.dart';
 import '../../data/models/accommodation.dart';
 import '../../data/models/restaurant.dart';
 import '../../core/utils/connectivity.dart';
-import '../../core/utils/location_service.dart';
 import '../../core/utils/permissions.dart';
 import '../common/widgets/app_bar.dart';
 import '../common/widgets/buttons.dart';
@@ -35,38 +34,39 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final RefreshController _refreshController = RefreshController(initialRefresh: false);
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    
+
     // Load home data when screen is opened
     context.read<HomeController>().add(LoadHomeData());
-    
+
     // Setup connectivity listener
     _setupConnectivityListener();
   }
-  
+
   @override
   void dispose() {
     _refreshController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
-  
+
   void _setupConnectivityListener() {
     Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
-      context.read<HomeController>().add(CheckConnectivity());
-    } as void Function(List<ConnectivityResult> event)?);
+          context.read<HomeController>().add(CheckConnectivity());
+        } as void Function(List<ConnectivityResult> event)?);
   }
-  
+
   void _onRefresh() async {
     context.read<HomeController>().add(RefreshHomeData());
     _refreshController.refreshCompleted();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,15 +75,15 @@ class _HomeScreenState extends State<HomeScreen> {
           if (state is HomeInitial) {
             return Center(child: LoadingSpinner());
           }
-          
+
           if (state is HomeError) {
             return _buildErrorView(state);
           }
-          
+
           // For both loading and loaded states, we show the content with shimmer for loading
           final isLoading = state is HomeLoading;
           final homeData = isLoading ? state : (state as HomeLoaded);
-          
+
           return SmartRefresher(
             controller: _refreshController,
             onRefresh: _onRefresh,
@@ -101,7 +101,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     IconButton(
                       icon: Icon(Icons.notifications_outlined),
                       onPressed: () {
-                        Navigator.pushNamed(context, AppRoutes.notificationCenter);
+                        Navigator.pushNamed(
+                            context, AppRoutes.notificationCenter);
                       },
                     ),
                     IconButton(
@@ -112,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                
+
                 // Main content
                 SliverToBoxAdapter(
                   child: Column(
@@ -127,51 +128,53 @@ class _HomeScreenState extends State<HomeScreen> {
                             isLoading: isLoading,
                           ),
                         ),
-                      
+
                       // Quick access panel
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         child: QuickAccessPanel(),
                       ),
-                      
+
                       SizedBox(height: 24),
-                      
+
                       // Upcoming trips section if available
                       if (homeData.upcomingItineraries.isNotEmpty)
                         _buildUpcomingTripsSection(homeData, isLoading),
-                      
+
                       SizedBox(height: 24),
-                      
+
                       // Deals section
                       _buildDealsSection(homeData, isLoading),
-                      
+
                       SizedBox(height: 24),
-                      
+
                       // Trending destinations section
                       _buildTrendingDestinationsSection(homeData, isLoading),
-                      
+
                       SizedBox(height: 24),
-                      
+
                       // Nearby destinations section if available
                       if (homeData.nearbyDestinations.isNotEmpty || isLoading)
                         _buildNearbyDestinationsSection(homeData, isLoading),
-                      
+
                       SizedBox(height: 24),
-                      
+
                       // Recently viewed destinations section if available
-                      if (homeData.recentlyViewedDestinations.isNotEmpty || isLoading)
+                      if (homeData.recentlyViewedDestinations.isNotEmpty ||
+                          isLoading)
                         _buildRecentlyViewedSection(homeData, isLoading),
-                      
+
                       SizedBox(height: 24),
-                      
+
                       // Recommended accommodations section
-                      _buildRecommendedAccommodationsSection(homeData, isLoading),
-                      
+                      _buildRecommendedAccommodationsSection(
+                          homeData, isLoading),
+
                       SizedBox(height: 24),
-                      
+
                       // Popular restaurants section
                       _buildPopularRestaurantsSection(homeData, isLoading),
-                      
+
                       SizedBox(height: 40),
                     ],
                   ),
@@ -183,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
+
   Widget _buildErrorView(HomeError state) {
     return Center(
       child: Padding(
@@ -192,19 +195,15 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              state.isConnectivityError 
-                ? Icons.wifi_off
-                : Icons.error_outline,
-              color: state.isConnectivityError 
-                ? Colors.orange 
-                : Colors.red,
+              state.isConnectivityError ? Icons.wifi_off : Icons.error_outline,
+              color: state.isConnectivityError ? Colors.orange : Colors.red,
               size: 64,
             ),
             SizedBox(height: 16),
             Text(
-              state.isConnectivityError 
-                ? 'No Internet Connection'
-                : 'Something went wrong',
+              state.isConnectivityError
+                  ? 'No Internet Connection'
+                  : 'Something went wrong',
               style: Theme.of(context).textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
@@ -230,21 +229,21 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
+
   Widget _buildGreetingSection(dynamic homeData) {
     final timeNow = DateTime.now().hour;
     String greeting = 'Good morning';
-    
+
     if (timeNow >= 12 && timeNow < 17) {
       greeting = 'Good afternoon';
     } else if (timeNow >= 17) {
       greeting = 'Good evening';
     }
-    
-    final userName = homeData.userName.isNotEmpty 
-      ? homeData.userName.split(' ').first 
-      : 'Traveler';
-    
+
+    final userName = homeData.userName.isNotEmpty
+        ? homeData.userName.split(' ').first
+        : 'Traveler';
+
     return Row(
       children: [
         Column(
@@ -257,15 +256,15 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               userName,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
           ],
         ),
       ],
     );
   }
-  
+
   Widget _buildUpcomingTripsSection(dynamic homeData, bool isLoading) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,8 +277,8 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 'Your Upcoming Trips',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               TextButton(
                 onPressed: () {
@@ -294,28 +293,28 @@ class _HomeScreenState extends State<HomeScreen> {
         SizedBox(
           height: 180,
           child: isLoading
-            ? _buildLoadingHorizontalList()
-            : ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                itemCount: homeData.upcomingItineraries.length,
-                itemBuilder: (context, index) {
-                  final itinerary = homeData.upcomingItineraries[index];
-                  return _buildUpcomingTripCard(itinerary);
-                },
-              ),
+              ? _buildLoadingHorizontalList()
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: homeData.upcomingItineraries.length,
+                  itemBuilder: (context, index) {
+                    final itinerary = homeData.upcomingItineraries[index];
+                    return _buildUpcomingTripCard(itinerary);
+                  },
+                ),
         ),
       ],
     );
   }
-  
+
   Widget _buildUpcomingTripCard(Map<String, dynamic> itinerary) {
     final startDate = DateTime.parse(itinerary['startDate']);
     final endDate = DateTime.parse(itinerary['endDate']);
     final formattedStartDate = DateFormat.MMMd().format(startDate);
     final formattedEndDate = DateFormat.MMMd().format(endDate);
     final daysLeft = startDate.difference(DateTime.now()).inDays;
-    
+
     return Container(
       width: 280,
       margin: EdgeInsets.only(right: 16),
@@ -370,7 +369,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                
                 Positioned(
                   top: 10,
                   right: 10,
@@ -381,11 +379,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      daysLeft == 0 
-                        ? 'Today!' 
-                        : daysLeft == 1 
-                          ? 'Tomorrow!' 
-                          : '$daysLeft days left',
+                      daysLeft == 0
+                          ? 'Today!'
+                          : daysLeft == 1
+                              ? 'Tomorrow!'
+                              : '$daysLeft days left',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -396,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            
+
             // Trip details
             Padding(
               padding: const EdgeInsets.all(12.0),
@@ -406,8 +404,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     itinerary['title'],
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -425,14 +423,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       Icon(
                         Icons.calendar_today,
                         size: 14,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.7),
                       ),
                       SizedBox(width: 4),
                       Text(
                         '$formattedStartDate - $formattedEndDate',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -445,7 +449,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
+
   Widget _buildDealsSection(dynamic homeData, bool isLoading) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -458,8 +462,8 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 'Exclusive Deals',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               TextButton(
                 onPressed: () {
@@ -472,21 +476,21 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         SizedBox(height: 8),
         isLoading
-          ? _buildLoadingCarousel()
-          : DealsCarousel(
-              deals: homeData.deals,
-              onDealTap: (dealId) {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.dealDetails,
-                  arguments: dealId,
-                );
-              },
-            ),
+            ? _buildLoadingCarousel()
+            : DealsCarousel(
+                deals: homeData.deals,
+                onDealTap: (dealId) {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.dealDetails,
+                    arguments: dealId,
+                  );
+                },
+              ),
       ],
     );
   }
-  
+
   Widget _buildTrendingDestinationsSection(dynamic homeData, bool isLoading) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,8 +503,8 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 'Trending in Sri Lanka',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               TextButton(
                 onPressed: () {
@@ -513,32 +517,32 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         SizedBox(height: 8),
         isLoading
-          ? _buildLoadingTrendingDestinations()
-          : TrendingDestinations(
-              destinations: homeData.trendingDestinations,
-              onDestinationTap: (destinationId) {
-                context.read<HomeController>().add(
-                  ViewDestinationDetails(destinationId: destinationId),
-                );
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.destinationDetails,
-                  arguments: destinationId,
-                );
-              },
-              onToggleFavorite: (destinationId, isFavorite) {
-                context.read<HomeController>().add(
-                  ToggleFavoriteDestination(
-                    destinationId: destinationId,
-                    isFavorite: isFavorite,
-                  ),
-                );
-              },
-            ),
+            ? _buildLoadingTrendingDestinations()
+            : TrendingDestinations(
+                destinations: homeData.trendingDestinations,
+                onDestinationTap: (destinationId) {
+                  context.read<HomeController>().add(
+                        ViewDestinationDetails(destinationId: destinationId),
+                      );
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.destinationDetails,
+                    arguments: destinationId,
+                  );
+                },
+                onToggleFavorite: (destinationId, isFavorite) {
+                  context.read<HomeController>().add(
+                        ToggleFavoriteDestination(
+                          destinationId: destinationId,
+                          isFavorite: isFavorite,
+                        ),
+                      );
+                },
+              ),
       ],
     );
   }
-  
+
   Widget _buildNearbyDestinationsSection(dynamic homeData, bool isLoading) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -551,8 +555,8 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 'Near You',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               TextButton(
                 onPressed: () {
@@ -570,41 +574,42 @@ class _HomeScreenState extends State<HomeScreen> {
         SizedBox(
           height: 180,
           child: isLoading
-            ? _buildLoadingHorizontalList()
-            : ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                itemCount: homeData.nearbyDestinations.length,
-                itemBuilder: (context, index) {
-                  final destination = homeData.nearbyDestinations[index];
-                  return _buildDestinationCard(
-                    destination: destination,
-                    onTap: () {
-                      context.read<HomeController>().add(
-                        ViewDestinationDetails(destinationId: destination.id),
-                      );
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.destinationDetails,
-                        arguments: destination.id,
-                      );
-                    },
-                    onToggleFavorite: (isFavorite) {
-                      context.read<HomeController>().add(
-                        ToggleFavoriteDestination(
-                          destinationId: destination.id,
-                          isFavorite: isFavorite,
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+              ? _buildLoadingHorizontalList()
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: homeData.nearbyDestinations.length,
+                  itemBuilder: (context, index) {
+                    final destination = homeData.nearbyDestinations[index];
+                    return _buildDestinationCard(
+                      destination: destination,
+                      onTap: () {
+                        context.read<HomeController>().add(
+                              ViewDestinationDetails(
+                                  destinationId: destination.id),
+                            );
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.destinationDetails,
+                          arguments: destination.id,
+                        );
+                      },
+                      onToggleFavorite: (isFavorite) {
+                        context.read<HomeController>().add(
+                              ToggleFavoriteDestination(
+                                destinationId: destination.id,
+                                isFavorite: isFavorite,
+                              ),
+                            );
+                      },
+                    );
+                  },
+                ),
         ),
       ],
     );
   }
-  
+
   Widget _buildRecentlyViewedSection(dynamic homeData, bool isLoading) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -614,48 +619,50 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Text(
             'Recently Viewed',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
         ),
         SizedBox(height: 8),
         SizedBox(
           height: 180,
           child: isLoading
-            ? _buildLoadingHorizontalList()
-            : ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                itemCount: homeData.recentlyViewedDestinations.length,
-                itemBuilder: (context, index) {
-                  final destination = homeData.recentlyViewedDestinations[index];
-                  return _buildDestinationCard(
-                    destination: destination,
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.destinationDetails,
-                        arguments: destination.id,
-                      );
-                    },
-                    onToggleFavorite: (isFavorite) {
-                      context.read<HomeController>().add(
-                        ToggleFavoriteDestination(
-                          destinationId: destination.id,
-                          isFavorite: isFavorite,
-                        ),
-                      );
-                    },
-                    compact: true,
-                  );
-                },
-              ),
+              ? _buildLoadingHorizontalList()
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: homeData.recentlyViewedDestinations.length,
+                  itemBuilder: (context, index) {
+                    final destination =
+                        homeData.recentlyViewedDestinations[index];
+                    return _buildDestinationCard(
+                      destination: destination,
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.destinationDetails,
+                          arguments: destination.id,
+                        );
+                      },
+                      onToggleFavorite: (isFavorite) {
+                        context.read<HomeController>().add(
+                              ToggleFavoriteDestination(
+                                destinationId: destination.id,
+                                isFavorite: isFavorite,
+                              ),
+                            );
+                      },
+                      compact: true,
+                    );
+                  },
+                ),
         ),
       ],
     );
   }
-  
-  Widget _buildRecommendedAccommodationsSection(dynamic homeData, bool isLoading) {
+
+  Widget _buildRecommendedAccommodationsSection(
+      dynamic homeData, bool isLoading) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -667,8 +674,8 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 'Popular Stays',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               TextButton(
                 onPressed: () {
@@ -683,21 +690,22 @@ class _HomeScreenState extends State<HomeScreen> {
         SizedBox(
           height: 220,
           child: isLoading
-            ? _buildLoadingHorizontalList()
-            : ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                itemCount: homeData.recommendedAccommodations.length,
-                itemBuilder: (context, index) {
-                  final accommodation = homeData.recommendedAccommodations[index];
-                  return _buildAccommodationCard(accommodation);
-                },
-              ),
+              ? _buildLoadingHorizontalList()
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: homeData.recommendedAccommodations.length,
+                  itemBuilder: (context, index) {
+                    final accommodation =
+                        homeData.recommendedAccommodations[index];
+                    return _buildAccommodationCard(accommodation);
+                  },
+                ),
         ),
       ],
     );
   }
-  
+
   Widget _buildPopularRestaurantsSection(dynamic homeData, bool isLoading) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -710,8 +718,8 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 'Popular Dining',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               TextButton(
                 onPressed: () {
@@ -726,21 +734,21 @@ class _HomeScreenState extends State<HomeScreen> {
         SizedBox(
           height: 220,
           child: isLoading
-            ? _buildLoadingHorizontalList()
-            : ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                itemCount: homeData.popularRestaurants.length,
-                itemBuilder: (context, index) {
-                  final restaurant = homeData.popularRestaurants[index];
-                  return _buildRestaurantCard(restaurant);
-                },
-              ),
+              ? _buildLoadingHorizontalList()
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: homeData.popularRestaurants.length,
+                  itemBuilder: (context, index) {
+                    final restaurant = homeData.popularRestaurants[index];
+                    return _buildRestaurantCard(restaurant);
+                  },
+                ),
         ),
       ],
     );
   }
-  
+
   Widget _buildDestinationCard({
     required Destination destination,
     required VoidCallback onTap,
@@ -795,7 +803,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Favorite button
                 Positioned(
                   top: 8,
@@ -814,8 +822,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: IconButton(
                       icon: Icon(
-                        destination.isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: destination.isFavorite ? Colors.red : Colors.grey,
+                        destination.isFavorite
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color:
+                            destination.isFavorite ? Colors.red : Colors.grey,
                       ),
                       iconSize: 18,
                       constraints: BoxConstraints(
@@ -823,13 +834,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         minHeight: 30,
                       ),
                       padding: EdgeInsets.zero,
-                      onPressed: () => onToggleFavorite(!destination.isFavorite),
+                      onPressed: () =>
+                          onToggleFavorite(!destination.isFavorite),
                     ),
                   ),
                 ),
               ],
             ),
-            
+
             // Destination details
             Padding(
               padding: const EdgeInsets.all(12.0),
@@ -839,8 +851,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     destination.name,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -858,7 +870,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           destination.regionName,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.7),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -874,7 +889,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
+
   Widget _buildAccommodationCard(Accommodation accommodation) {
     return Container(
       width: 220,
@@ -930,7 +945,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Rating
                 Positioned(
                   top: 8,
@@ -961,7 +976,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Price badge
                 Positioned(
                   bottom: 8,
@@ -984,7 +999,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            
+
             // Hotel details
             Padding(
               padding: const EdgeInsets.all(12.0),
@@ -994,8 +1009,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     accommodation.name,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1013,7 +1028,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           accommodation.location,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.7),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1036,7 +1054,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           amenity,
                           style: TextStyle(
                             fontSize: 10,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       );
@@ -1050,10 +1069,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
+
   Widget _buildRestaurantCard(Restaurant restaurant) {
     final isOpen = _isRestaurantOpenNow(restaurant.openingHours as String);
-    
+
     return Container(
       width: 220,
       margin: EdgeInsets.only(right: 16),
@@ -1108,7 +1127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Rating
                 Positioned(
                   top: 8,
@@ -1139,7 +1158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Open status
                 Positioned(
                   top: 8,
@@ -1160,7 +1179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Price level
                 Positioned(
                   bottom: 8,
@@ -1183,7 +1202,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            
+
             // Restaurant details
             Padding(
               padding: const EdgeInsets.all(12.0),
@@ -1193,8 +1212,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     restaurant.name,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1212,7 +1231,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           restaurant.location,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.7),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1244,7 +1266,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
+
   // Loading placeholders
   Widget _buildLoadingHorizontalList() {
     return ListView.builder(
@@ -1268,7 +1290,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-  
+
   Widget _buildLoadingCarousel() {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
@@ -1283,7 +1305,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
+
   Widget _buildLoadingTrendingDestinations() {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
@@ -1311,7 +1333,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
+
   // Helper methods
   bool _isRestaurantOpenNow(String openingHours) {
     // This would typically involve parsing the opening hours
@@ -1319,39 +1341,44 @@ class _HomeScreenState extends State<HomeScreen> {
     // For this example, we'll return a simple check
     return true;
   }
-  
+
   String _getPriceLevel(int level) {
     switch (level) {
       case 1:
-        return '$\;
+        return '\$';
       case 2:
-        return '\$;
+        return '\$';
       case 3:
-        return '\$\$;
+        return '\$\$';
       case 4:
-        return '\$\$\$;
+        return '\$\$\$';
       default:
-        return '\$;
+        return '\$';
     }
   }
-  
-  DealsCarousel({required deals, required Null Function(dynamic dealId) onDealTap}) {}
-  
-  TrendingDestinations({required destinations, required Null Function(dynamic destinationId) onDestinationTap, required Null Function(dynamic destinationId, dynamic isFavorite) onToggleFavorite}) {}
-  
+
+  DealsCarousel(
+      {required deals, required Null Function(dynamic dealId) onDealTap}) {}
+
+  TrendingDestinations(
+      {required destinations,
+      required Null Function(dynamic destinationId) onDestinationTap,
+      required Null Function(dynamic destinationId, dynamic isFavorite)
+          onToggleFavorite}) {}
+
   QuickAccessPanel() {}
-  
+
   LoadingSpinner() {}
-  
+
   WeatherWidget({required weatherData, required bool isLoading}) {}
 }
 
 extension on HomeState {
   get recentlyViewedDestinations => null;
-  
+
   get nearbyDestinations => null;
-  
+
   get upcomingItineraries => null;
-  
+
   get weatherData => null;
 }

@@ -5,16 +5,15 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:taprobana_trails/bloc/restaurant/restaurant_state.dart';
+import 'package:taprobana_trails/bloc/restaurant/restaurant_bloc.dart' as bloc;
 import 'package:taprobana_trails/presentation/dining/restaurant_list_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-
-import '../../bloc/restaurant/restaurant_bloc.dart';
 import '../../config/constants.dart';
 import '../../config/routes.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import '../../config/theme.dart';
 import '../../data/models/restaurant.dart';
 import '../../core/utils/connectivity.dart';
@@ -27,99 +26,102 @@ import 'widgets/restaurant_card.dart';
 
 class RestaurantDetailsScreen extends StatefulWidget {
   final String restaurantId;
-  
+
   const RestaurantDetailsScreen({
     super.key,
     required this.restaurantId,
   });
 
   @override
-  State<RestaurantDetailsScreen> createState() => _RestaurantDetailsScreenState();
+  State<RestaurantDetailsScreen> createState() =>
+      _RestaurantDetailsScreenState();
 }
 
-class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with TickerProviderStateMixin {
+class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen>
+    with TickerProviderStateMixin {
   final PanelController _panelController = PanelController();
-  final CarouselController _carouselController = CarouselController();
-  
+  final CarouselSliderController _carouselController =
+      CarouselSliderController();
+
   late TabController _tabController;
   int _currentImageIndex = 0;
   bool _isFavorite = false;
   bool _isBookmarked = false;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Load restaurant details when screen is opened
-    context.read<RestaurantBloc>().add(LoadRestaurantDetails(widget.restaurantId));
-    
+    context
+        .read<bloc.RestaurantBloc>()
+        .add(bloc.LoadRestaurantDetails(restaurantId: widget.restaurantId));
     // Check if restaurant is in favorites or bookmarks
     _checkFavoriteStatus();
     _checkBookmarkStatus();
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
-  
+
   void _checkFavoriteStatus() async {
     // This would typically come from your user preferences or repository
     setState(() {
       _isFavorite = false; // Replace with actual implementation
     });
   }
-  
+
   void _checkBookmarkStatus() async {
     // This would typically come from your user preferences or repository
     setState(() {
       _isBookmarked = false; // Replace with actual implementation
     });
   }
-  
+
   void _toggleFavorite() {
     setState(() {
       _isFavorite = !_isFavorite;
     });
-    
+
     // Update the favorite status in repository/preferences
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_isFavorite 
-          ? 'Added to favorites' 
-          : 'Removed from favorites'),
+        content:
+            Text(_isFavorite ? 'Added to favorites' : 'Removed from favorites'),
         duration: Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
     );
   }
-  
+
   void _toggleBookmark() {
     setState(() {
       _isBookmarked = !_isBookmarked;
     });
-    
+
     // Update the bookmark status in repository/preferences
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_isBookmarked 
-          ? 'Saved to your places' 
-          : 'Removed from your places'),
+        content: Text(_isBookmarked
+            ? 'Saved to your places'
+            : 'Removed from your places'),
         duration: Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
     );
   }
-  
+
   void _shareRestaurant(Restaurant restaurant) {
     Share.share(
       'Check out ${restaurant.name} on Taprobana Trails! ${restaurant.description} Download the app now.',
       subject: 'Great restaurant in Sri Lanka: ${restaurant.name}',
     );
   }
-  
+
   void _makePhoneCall(String phoneNumber) async {
     final url = 'tel:$phoneNumber';
     if (await canLaunch(url)) {
@@ -133,7 +135,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       );
     }
   }
-  
+
   void _openWebsite(String website) async {
     if (await canLaunch(website)) {
       await launch(website);
@@ -146,9 +148,10 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       );
     }
   }
-  
+
   void _openLocation(double latitude, double longitude) async {
-    final url = 'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+    final url =
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
     if (await canLaunch(url)) {
       await launch(url);
     } else {
@@ -160,7 +163,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       );
     }
   }
-  
+
   void _navigateToReservation(Restaurant restaurant) {
     Navigator.pushNamed(
       context,
@@ -168,7 +171,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       arguments: restaurant,
     );
   }
-  
+
   void _submitReview() {
     // TODO: Implement review submission
     ScaffoldMessenger.of(context).showSnackBar(
@@ -178,22 +181,22 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       ),
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final screenHeight = MediaQuery.of(context).size.height;
     final statusBarHeight = MediaQuery.of(context).padding.top;
-    
-    return BlocBuilder<RestaurantBloc, RestaurantState>(
+
+    return BlocBuilder<bloc.RestaurantBloc, bloc.RestaurantState>(
       builder: (context, state) {
-        if (state is RestaurantDetailsLoading) {
+        if (state is bloc.RestaurantDetailsLoading) {
           return Scaffold(
-            body: LoadingSpinner(),
+            body: CircularProgressIndicator(),
           );
         }
-        
-        if (state is RestaurantDetailsError) {
+
+        if (state is bloc.RestaurantDetailsError) {
           return Scaffold(
             appBar: AppBar(),
             body: Center(
@@ -218,9 +221,10 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                   ),
                   SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () => context.read<RestaurantBloc>().add(
-                      LoadRestaurantDetails(widget.restaurantId),
-                    ),
+                    onPressed: () => context.read<bloc.RestaurantBloc>().add(
+                          bloc.LoadRestaurantDetails(
+                              restaurantId: widget.restaurantId),
+                        ),
                     child: Text('Try Again'),
                   ),
                 ],
@@ -228,11 +232,12 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ),
           );
         }
-        
-        if (state is RestaurantDetailsLoaded) {
+
+        if (state is bloc.RestaurantDetailsLoaded) {
           final restaurant = state.restaurant;
-          final isOpen = _isRestaurantOpenNow(restaurant.openingHours);
-          
+          final isOpen =
+              _isRestaurantOpenNow(restaurant.openingHours.toString());
+
           return Scaffold(
             body: SlidingUpPanel(
               controller: _panelController,
@@ -254,7 +259,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ),
           );
         }
-        
+
         // Default loading state
         return Scaffold(
           body: Center(
@@ -264,7 +269,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       },
     );
   }
-  
+
   Widget _buildImageCarousel(Restaurant restaurant) {
     return Stack(
       children: [
@@ -303,7 +308,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             );
           }).toList(),
         ),
-        
+
         // Back button
         Positioned(
           top: MediaQuery.of(context).padding.top + 10,
@@ -317,7 +322,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ),
           ),
         ),
-        
+
         // Action buttons
         Positioned(
           top: MediaQuery.of(context).padding.top + 10,
@@ -359,7 +364,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ],
           ),
         ),
-        
+
         // Image indicators
         Positioned(
           bottom: MediaQuery.of(context).size.height * 0.5 + 16,
@@ -385,7 +390,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       ],
     );
   }
-  
+
   Widget _buildDetailsPanel(
     BuildContext context,
     Restaurant restaurant,
@@ -393,7 +398,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
     bool isOpen,
   ) {
     final theme = Theme.of(context);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -409,7 +414,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ),
           ),
         ),
-        
+
         // Restaurant name and rating
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -439,7 +444,8 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                           child: Text(
                             restaurant.location,
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.7),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -482,9 +488,9 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ],
           ),
         ),
-        
+
         SizedBox(height: 12),
-        
+
         // Cuisine type, price level, and open status
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -506,9 +512,9 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ],
           ),
         ),
-        
+
         SizedBox(height: 16),
-        
+
         // Quick action buttons
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -518,14 +524,14 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                 context,
                 'Call',
                 Icons.call,
-                () => _makePhoneCall(restaurant.phoneNumber),
+                () => _makePhoneCall(restaurant.phoneNumber!),
               ),
               SizedBox(width: 12),
               _buildActionButton(
                 context,
                 'Website',
                 Icons.language,
-                () => _openWebsite(restaurant.website),
+                () => _openWebsite(restaurant.website!),
               ),
               SizedBox(width: 12),
               _buildActionButton(
@@ -548,16 +554,14 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ],
           ),
         ),
-        
+
         SizedBox(height: 16),
-        
+
         // Reserve button
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: ElevatedButton(
-            onPressed: isOpen 
-              ? () => _navigateToReservation(restaurant)
-              : null,
+            onPressed: isOpen ? () => _navigateToReservation(restaurant) : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.colorScheme.primary,
               foregroundColor: Colors.white,
@@ -575,9 +579,9 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ),
           ),
         ),
-        
+
         SizedBox(height: 16),
-        
+
         // Tab bar
         Container(
           decoration: BoxDecoration(
@@ -600,7 +604,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ],
           ),
         ),
-        
+
         // Tab content
         Expanded(
           child: TabBarView(
@@ -615,14 +619,14 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       ],
     );
   }
-  
+
   Widget _buildInfoChip(
     BuildContext context,
     String label,
     IconData icon,
   ) {
     final theme = Theme.of(context);
-    
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -650,16 +654,16 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       ),
     );
   }
-  
+
   Widget _buildOpenStatusChip(BuildContext context, bool isOpen) {
     Theme.of(context);
-    
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: isOpen
-          ? Colors.green.withOpacity(0.1)
-          : Colors.red.withOpacity(0.1),
+            ? Colors.green.withOpacity(0.1)
+            : Colors.red.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -686,16 +690,12 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       ),
     );
   }
-  
+
   Widget _buildActionButton(
-    BuildContext context,
-    String label,
-    IconData icon,
-    VoidCallback onTap,
-    {bool isSelected = false}
-  ) {
+      BuildContext context, String label, IconData icon, VoidCallback onTap,
+      {bool isSelected = false}) {
     final theme = Theme.of(context);
-    
+
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -706,8 +706,8 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
               height: 40,
               decoration: BoxDecoration(
                 color: isSelected
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.surface,
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.surface,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
@@ -719,9 +719,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
               ),
               child: Icon(
                 icon,
-                color: isSelected
-                  ? Colors.white
-                  : theme.colorScheme.primary,
+                color: isSelected ? Colors.white : theme.colorScheme.primary,
                 size: 20,
               ),
             ),
@@ -732,8 +730,8 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 color: isSelected
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface,
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface,
               ),
             ),
           ],
@@ -741,14 +739,14 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       ),
     );
   }
-  
+
   Widget _buildOverviewTab(
     BuildContext context,
     Restaurant restaurant,
     ScrollController scrollController,
   ) {
     final theme = Theme.of(context);
-    
+
     return ListView(
       controller: scrollController,
       padding: EdgeInsets.all(24),
@@ -766,7 +764,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
           style: theme.textTheme.bodyMedium,
         ),
         SizedBox(height: 24),
-        
+
         // Location and map preview
         Text(
           'Location',
@@ -813,7 +811,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
           ),
         ),
         SizedBox(height: 24),
-        
+
         // Opening hours
         Text(
           'Opening Hours',
@@ -824,17 +822,17 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
         SizedBox(height: 12),
         Column(
           children: [
-            _buildOpeningHoursRow('Monday', restaurant.mondayHours),
-            _buildOpeningHoursRow('Tuesday', restaurant.tuesdayHours),
-            _buildOpeningHoursRow('Wednesday', restaurant.wednesdayHours),
-            _buildOpeningHoursRow('Thursday', restaurant.thursdayHours),
-            _buildOpeningHoursRow('Friday', restaurant.fridayHours),
-            _buildOpeningHoursRow('Saturday', restaurant.saturdayHours),
-            _buildOpeningHoursRow('Sunday', restaurant.sundayHours),
+            _buildOpeningHoursRow('Monday', restaurant),
+            _buildOpeningHoursRow('Tuesday', restaurant),
+            _buildOpeningHoursRow('Wednesday', restaurant),
+            _buildOpeningHoursRow('Thursday', restaurant),
+            _buildOpeningHoursRow('Friday', restaurant),
+            _buildOpeningHoursRow('Saturday', restaurant),
+            _buildOpeningHoursRow('Sunday', restaurant),
           ],
         ),
         SizedBox(height: 24),
-        
+
         // Facilities
         Text(
           'Facilities',
@@ -866,7 +864,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
           }).toList(),
         ),
         SizedBox(height: 24),
-        
+
         // Contact information
         Text(
           'Contact Information',
@@ -877,34 +875,34 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
         SizedBox(height: 12),
         _buildContactInfoRow(
           'Phone',
-          restaurant.phoneNumber,
+          restaurant.phoneNumber!,
           Icons.call,
-          () => _makePhoneCall(restaurant.phoneNumber),
+          () => _makePhoneCall(restaurant.phoneNumber!),
         ),
         SizedBox(height: 8),
         _buildContactInfoRow(
           'Website',
-          restaurant.website,
+          restaurant.website!,
           Icons.language,
-          () => _openWebsite(restaurant.website),
+          () => _openWebsite(restaurant.website!),
         ),
         SizedBox(height: 8),
         _buildContactInfoRow(
           'Email',
-          restaurant.email,
+          restaurant.email!,
           Icons.email,
-          () 
-          {/* TODO: Implement email action */},
+          () {/* TODO: Implement email action */},
         ),
       ],
     );
   }
-  
-  Widget _buildOpeningHoursRow(String day, String hours) {
+
+  Widget _buildOpeningHoursRow(String day, Restaurant restaurant) {
     final theme = Theme.of(context);
     final isToday = _isToday(day);
-    final isOpen = _isDayOpen(hours);
-    
+    final hours = restaurant.openingHours[day] ?? 'Not available';
+    final isOpen = hours.toLowerCase() != 'closed';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
@@ -926,25 +924,23 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                 SizedBox(width: 16),
               Text(
                 day,
-                style: isToday
-                  ? TextStyle(fontWeight: FontWeight.bold)
-                  : null,
+                style: isToday ? TextStyle(fontWeight: FontWeight.bold) : null,
               ),
             ],
           ),
           Text(
-            hours == 'Closed' ? 'Closed' : hours,
+            hours,
             style: TextStyle(
-              color: hours == 'Closed'
-                ? Colors.red
-                : theme.colorScheme.onSurface,
+              color: hours.toLowerCase() == 'closed'
+                  ? Colors.red
+                  : theme.colorScheme.onSurface,
             ),
           ),
         ],
       ),
     );
   }
-  
+
   Widget _buildContactInfoRow(
     String label,
     String value,
@@ -952,7 +948,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
     VoidCallback onTap,
   ) {
     final theme = Theme.of(context);
-    
+
     return InkWell(
       onTap: onTap,
       child: Row(
@@ -985,74 +981,74 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       ),
     );
   }
-  
+
   Widget _buildMenuTab(
     BuildContext context,
     Restaurant restaurant,
     ScrollController scrollController,
   ) {
     final theme = Theme.of(context);
-    
+
     // This would typically be implemented with a MenuViewer widget
     // For this example, we'll create a simple placeholder
     return restaurant.menuItems.isEmpty
-      ? Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.restaurant_menu,
-                size: 64,
-                color: Colors.grey[400],
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Menu not available',
-                style: theme.textTheme.titleMedium,
-              ),
-              SizedBox(height: 8),
-              Text(
-                'The restaurant hasn\'t provided a menu yet',
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        )
-      : ListView(
-          controller: scrollController,
-          padding: EdgeInsets.all(16),
-          children: [
-            // Menu categories
-            ...restaurant.menuCategories.map((category) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 8.0,
-                  ),
-                  child: Text(
-                    category,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                Icon(
+                  Icons.restaurant_menu,
+                  size: 64,
+                  color: Colors.grey[400],
                 ),
-                // Menu items for this category
-                ...restaurant.menuItems
-                  .where((item) => item.category == category)
-                  .map((item) => _buildMenuItem(context, item)),
                 SizedBox(height: 16),
+                Text(
+                  'Menu not available',
+                  style: theme.textTheme.titleMedium,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'The restaurant hasn\'t provided a menu yet',
+                  style: theme.textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
               ],
-            )),
-          ],
-        );
+            ),
+          )
+        : ListView(
+            controller: scrollController,
+            padding: EdgeInsets.all(16),
+            children: [
+              // Menu categories
+              ...restaurant.menuCategories.map((category) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 8.0,
+                        ),
+                        child: Text(
+                          category,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      // Menu items for this category
+                      ...restaurant.menuItems
+                          .where((item) => item.category == category)
+                          .map((item) => _buildMenuItem(context, item)),
+                      SizedBox(height: 16),
+                    ],
+                  )),
+            ],
+          );
   }
-  
+
   Widget _buildMenuItem(BuildContext context, MenuItem item) {
     final theme = Theme.of(context);
-    
+
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       shape: RoundedRectangleBorder(
@@ -1089,9 +1085,9 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                   ),
                 ),
               ),
-            
+
             SizedBox(width: item.imageUrl != null ? 16 : 0),
-            
+
             // Item details
             Expanded(
               child: Column(
@@ -1117,7 +1113,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                       ),
                     ],
                   ),
-                  
+
                   if (item.description != null) ...[
                     SizedBox(height: 4),
                     Text(
@@ -1129,9 +1125,9 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                  
+
                   SizedBox(height: 8),
-                  
+
                   // Tags (spicy, vegetarian, etc.)
                   if (item.tags.isNotEmpty)
                     Wrap(
@@ -1165,7 +1161,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       ),
     );
   }
-  
+
   Color _getTagColor(String tag, ThemeData theme) {
     switch (tag.toLowerCase()) {
       case 'spicy':
@@ -1185,14 +1181,14 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
         return theme.colorScheme.primary;
     }
   }
-  
+
   Widget _buildReviewsTab(
     BuildContext context,
     Restaurant restaurant,
     ScrollController scrollController,
   ) {
     final theme = Theme.of(context);
-    
+
     return ListView(
       controller: scrollController,
       padding: EdgeInsets.all(16),
@@ -1244,9 +1240,9 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                     ),
                   ],
                 ),
-                
+
                 SizedBox(height: 16),
-                
+
                 // Rating distribution
                 Column(
                   children: [
@@ -1257,9 +1253,9 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                     _buildRatingBar(context, 1, 0.01),
                   ],
                 ),
-                
+
                 SizedBox(height: 16),
-                
+
                 // Write a review button
                 OutlinedButton.icon(
                   onPressed: _submitReview,
@@ -1276,9 +1272,9 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ),
           ),
         ),
-        
+
         SizedBox(height: 16),
-        
+
         // Reviews heading
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -1300,18 +1296,20 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
             ],
           ),
         ),
-        
+
         SizedBox(height: 8),
-        
+
         // Review list
-        ...restaurant.reviews.take(5).map((review) => _buildReviewItem(context, review)),
+        ...restaurant.reviews!
+            .take(5)
+            .map((review) => _buildReviewItem(context, review as Review)),
       ],
     );
   }
-  
+
   Widget _buildRatingBar(BuildContext context, int rating, double percentage) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 4.0),
       child: Row(
@@ -1359,11 +1357,11 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       ),
     );
   }
-  
+
   Widget _buildReviewItem(BuildContext context, Review review) {
     final theme = Theme.of(context);
     final timeAgo = timeago.format(review.date);
-    
+
     return Card(
       margin: EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
@@ -1380,11 +1378,11 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                 CircleAvatar(
                   radius: 20,
                   backgroundImage: review.authorImage != null
-                    ? CachedNetworkImageProvider(review.authorImage!)
-                    : null,
+                      ? CachedNetworkImageProvider(review.authorImage!)
+                      : null,
                   child: review.authorImage == null
-                    ? Text(review.authorName[0])
-                    : null,
+                      ? Text(review.authorName[0])
+                      : null,
                 ),
                 SizedBox(width: 12),
                 Expanded(
@@ -1418,7 +1416,8 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                             timeAgo,
                             style: TextStyle(
                               fontSize: 12,
-                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.7),
                             ),
                           ),
                         ],
@@ -1428,18 +1427,18 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                 ),
               ],
             ),
-            
+
             SizedBox(height: 12),
-            
+
             // Review content
             Text(
               review.content,
               style: theme.textTheme.bodyMedium,
             ),
-            
+
             if (review.photos.isNotEmpty) ...[
               SizedBox(height: 12),
-              
+
               // Review photos
               SizedBox(
                 height: 80,
@@ -1474,7 +1473,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
                 ),
               ),
             ],
-            
+
             // If there's owner response
             if (review.ownerResponse != null) ...[
               SizedBox(height: 12),
@@ -1510,7 +1509,7 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
       ),
     );
   }
-  
+
   // Helper methods
   bool _isRestaurantOpenNow(String openingHours) {
     // This would typically involve parsing the opening hours
@@ -1518,16 +1517,16 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> with 
     // For this example, we'll assume it's open
     return true;
   }
-  
+
   bool _isToday(String day) {
     final today = DateFormat('EEEE').format(DateTime.now());
     return day.toLowerCase() == today.toLowerCase();
   }
-  
+
   bool _isDayOpen(String hours) {
     return hours != 'Closed';
   }
-  
+
   String _getPriceText(int priceLevel) {
     switch (priceLevel) {
       case 1:
@@ -1554,7 +1553,7 @@ class MenuItem {
   final String category;
   final String? imageUrl;
   final List<String> tags;
-  
+
   MenuItem({
     required this.id,
     required this.name,
@@ -1575,7 +1574,7 @@ class Review {
   final DateTime date;
   final List<String> photos;
   final String? ownerResponse;
-  
+
   Review({
     required this.id,
     required this.authorName,

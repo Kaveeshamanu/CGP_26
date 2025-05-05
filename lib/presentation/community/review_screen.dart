@@ -5,11 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:taprobana_trails/bloc/review/review_bloc.dart';
 import 'dart:io';
 
-import 'package:taprobana_trails/bloc/review/review_bloc.dart';
-import '../../bloc/review/review_event.dart';
-import '../../bloc/review/review_state.dart';
 import '../../data/models/user.dart';
 import '../../core/utils/connectivity.dart';
 import '../../core/utils/validation.dart';
@@ -20,7 +18,8 @@ import '../common/widgets/notifications.dart';
 
 class ReviewScreen extends StatefulWidget {
   final String? entityId;
-  final String? entityType; // 'accommodation', 'restaurant', 'destination', etc.
+  final String?
+      entityType; // 'accommodation', 'restaurant', 'destination', etc.
   final String? entityName;
   final String? entityImage;
   final double? currentRating;
@@ -56,7 +55,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   final List<String> _ratingCategoryTitles = [];
   final Map<String, double> _categoryRatings = {};
   DateTime? _visitDate;
-  
+
   get ConnectivityHelper => null;
 
   @override
@@ -70,17 +69,21 @@ class _ReviewScreenState extends State<ReviewScreen> {
   void _initReviewData() {
     if (widget.editMode && widget.existingReview != null) {
       _titleController.text = widget.existingReview!['title'] as String? ?? '';
-      _reviewController.text = widget.existingReview!['review'] as String? ?? '';
+      _reviewController.text =
+          widget.existingReview!['review'] as String? ?? '';
       _rating = widget.existingReview!['rating'] as double? ?? 0.0;
       _isRecommended = widget.existingReview!['recommended'] as bool? ?? true;
-      _existingImageUrls = List<String>.from(widget.existingReview!['imageUrls'] ?? []);
-      
+      _existingImageUrls =
+          List<String>.from(widget.existingReview!['imageUrls'] ?? []);
+
       if (widget.existingReview!['visitDate'] != null) {
-        _visitDate = DateTime.tryParse(widget.existingReview!['visitDate'] as String);
+        _visitDate =
+            DateTime.tryParse(widget.existingReview!['visitDate'] as String);
       }
-      
+
       // Initialize category ratings if they exist
-      final categoryRatings = widget.existingReview!['categoryRatings'] as Map<String, dynamic>?;
+      final categoryRatings =
+          widget.existingReview!['categoryRatings'] as Map<String, dynamic>?;
       if (categoryRatings != null) {
         categoryRatings.forEach((key, value) {
           _categoryRatings[key] = (value as num).toDouble();
@@ -164,7 +167,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
               primary: Theme.of(context).primaryColor,
               onPrimary: Colors.white,
               surface: Theme.of(context).cardColor,
-              onSurface: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
+              onSurface:
+                  Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
             ),
             dialogBackgroundColor: Theme.of(context).scaffoldBackgroundColor,
           ),
@@ -172,7 +176,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
         );
       },
     );
-    
+
     if (picked != null && picked != _visitDate) {
       setState(() {
         _visitDate = picked;
@@ -185,10 +189,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
       final List<XFile> images = await _imagePicker.pickMultiImage(
         imageQuality: 80,
       );
-      
+
       if (images.isNotEmpty) {
         setState(() {
-          _selectedImages.addAll(images.map((image) => File(image.path)).toList());
+          _selectedImages
+              .addAll(images.map((image) => File(image.path)).toList());
         });
       }
     } catch (e) {
@@ -226,7 +231,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       // Check connectivity first
       final isConnected = await ConnectivityHelper.isConnected();
       if (!isConnected) {
-        throw Exception('No internet connection. Please check your connection and try again.');
+        throw Exception(
+            'No internet connection. Please check your connection and try again.');
       }
 
       // Create the review data
@@ -284,7 +290,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
             setState(() {
               _isLoading = false;
             });
-            ToastNotification.showSuccess('Review ${widget.editMode ? 'updated' : 'submitted'} successfully');
+            ToastNotification.showSuccess(
+                'Review ${widget.editMode ? 'updated' : 'submitted'} successfully');
             Navigator.pop(context, true); // Return success result
           } else if (state is ReviewError) {
             setState(() {
@@ -361,7 +368,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
             if (_ratingCategoryTitles.isNotEmpty) ...[
               const SizedBox(height: 24.0),
               _buildSectionTitle('Rate Specific Aspects'),
-              ..._ratingCategoryTitles.map((category) => _buildCategoryRating(category)),
+              ..._ratingCategoryTitles
+                  .map((category) => _buildCategoryRating(category)),
             ],
 
             const SizedBox(height: 24.0),
@@ -403,7 +411,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
             InkWell(
               onTap: () => _selectDate(context),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 12.0),
                 decoration: BoxDecoration(
                   border: Border.all(color: Theme.of(context).dividerColor),
                   borderRadius: BorderRadius.circular(8.0),
@@ -523,7 +532,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Shimmer.fromColors(
                   baseColor: Theme.of(context).colorScheme.surface,
-                  highlightColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                  highlightColor:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
                   child: Container(
                     width: 60.0,
                     height: 60.0,
@@ -547,8 +557,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 Text(
                   widget.entityName!,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const SizedBox(height: 4.0),
                 Text(
@@ -594,8 +604,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
+              fontWeight: FontWeight.bold,
+            ),
       ),
     );
   }
@@ -647,7 +657,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
       decoration: BoxDecoration(
-        color: isSelected ? color.withOpacity(0.1) : Theme.of(context).cardColor,
+        color:
+            isSelected ? color.withOpacity(0.1) : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(8.0),
         border: Border.all(
           color: isSelected ? color : Theme.of(context).dividerColor,
@@ -694,7 +705,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       height: 100.0,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8.0),
-                        border: Border.all(color: Theme.of(context).dividerColor),
+                        border:
+                            Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(7.0),
@@ -703,10 +715,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Shimmer.fromColors(
                             baseColor: Theme.of(context).colorScheme.surface,
-                            highlightColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                            highlightColor: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.1),
                             child: Container(color: Colors.white),
                           ),
-                          errorWidget: (context, url, error) => const Icon(Icons.error),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
                         ),
                       ),
                     ),
@@ -753,7 +769,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       height: 100.0,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8.0),
-                        border: Border.all(color: Theme.of(context).dividerColor),
+                        border:
+                            Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(7.0),
@@ -796,7 +813,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
           icon: const Icon(Icons.add_photo_alternate),
           label: const Text('Add Photos'),
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           ),
         ),
         const SizedBox(height: 8.0),

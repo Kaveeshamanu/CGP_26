@@ -16,17 +16,19 @@ import '../common/widgets/buttons.dart';
 import '../common/widgets/loaders.dart';
 
 class BookingScreen extends StatefulWidget {
-  final Accommodation accommodation;
+  final Accommodation? accommodation;
   final DateTime? checkInDate;
   final DateTime? checkOutDate;
   final int guestCount;
 
   const BookingScreen({
     super.key,
-    required this.accommodation,
+    this.accommodation,
     this.checkInDate,
     this.checkOutDate,
     this.guestCount = 2,
+    required hotelId,
+    required roomType,
   });
 
   @override
@@ -43,20 +45,23 @@ class _BookingScreenState extends State<BookingScreen> {
   bool _isAvailable = true;
   String? _errorMessage;
   final _formKey = GlobalKey<FormState>();
-  
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _specialRequestsController = TextEditingController();
+  final TextEditingController _specialRequestsController =
+      TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _accommodationBloc = BlocProvider.of<AccommodationBloc>(context);
-    _checkInDate = widget.checkInDate ?? DateTime.now().add(const Duration(days: 1));
-    _checkOutDate = widget.checkOutDate ?? DateTime.now().add(const Duration(days: 3));
+    _checkInDate =
+        widget.checkInDate ?? DateTime.now().add(const Duration(days: 1));
+    _checkOutDate =
+        widget.checkOutDate ?? DateTime.now().add(const Duration(days: 3));
     _guestCount = widget.guestCount;
-    
+
     _calculateTotalPrice();
     _checkAvailability('');
     _loadUserData();
@@ -76,7 +81,7 @@ class _BookingScreenState extends State<BookingScreen> {
       final User? currentUser = await SecureStorage().getCurrentUser();
       if (currentUser != null && mounted) {
         setState(() {
-          _nameController.text = currentUser.displayName;
+          _nameController.text = currentUser.displayName!;
           _emailController.text = currentUser.email;
           _phoneController.text = currentUser.phoneNumber ?? '';
         });
@@ -89,34 +94,37 @@ class _BookingScreenState extends State<BookingScreen> {
   void _calculateTotalPrice() {
     // Calculate the total price based on accommodation's pricing model
     final nights = _checkOutDate.difference(_checkInDate).inDays;
-    
+
     // Basic calculation based on base price
-    double baseTotal = widget.accommodation.basePrice * nights;
-    
+    double baseTotal = widget.accommodation?.basePrice * nights;
+
     // Add guest surcharge if more than standard occupancy
-    final standardOccupancy = widget.accommodation.standardOccupancy ?? 2;
+    final standardOccupancy = widget.accommodation?.standardOccupancy ?? 2;
     if (_guestCount > standardOccupancy) {
       final extraGuests = _guestCount - standardOccupancy;
-      final extraGuestCharge = (widget.accommodation.extraGuestCharge ?? 0) * extraGuests * nights;
+      final extraGuestCharge =
+          (widget.accommodation?.extraGuestCharge ?? 0) * extraGuests * nights;
       baseTotal += extraGuestCharge;
     }
-    
+
     // Apply weekly or monthly discount if applicable
-    if (nights >= 30 && widget.accommodation.monthlyDiscount != null) {
-      baseTotal = baseTotal * (1 - (widget.accommodation.monthlyDiscount! / 100));
-    } else if (nights >= 7 && widget.accommodation.weeklyDiscount != null) {
-      baseTotal = baseTotal * (1 - (widget.accommodation.weeklyDiscount! / 100));
+    if (nights >= 30 && widget.accommodation?.monthlyDiscount != null) {
+      baseTotal =
+          baseTotal * (1 - (widget.accommodation?.monthlyDiscount! / 100));
+    } else if (nights >= 7 && widget.accommodation?.weeklyDiscount != null) {
+      baseTotal =
+          baseTotal * (1 - (widget.accommodation?.weeklyDiscount! / 100));
     }
-    
+
     // Add cleaning fee if applicable
-    if (widget.accommodation.cleaningFee != null) {
-      baseTotal += widget.accommodation.cleaningFee!;
+    if (widget.accommodation?.cleaningFee != null) {
+      baseTotal += widget.accommodation?.cleaningFee!;
     }
-    
+
     // Add service fee (assume 10% if not specified)
-    final serviceFeePercent = widget.accommodation.serviceFeePercent ?? 10;
+    final serviceFeePercent = widget.accommodation?.serviceFeePercent ?? 10;
     final serviceFee = baseTotal * (serviceFeePercent / 100);
-    
+
     // Calculate final total
     _totalPrice = baseTotal + serviceFee;
   }
@@ -127,16 +135,17 @@ class _BookingScreenState extends State<BookingScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
-    
+
     try {
       // Check internet connectivity first
       if (!await ConnectivityHelper.isConnected()) {
-        throw Exception('No internet connection. Please try again when you\'re online.');
+        throw Exception(
+            'No internet connection. Please try again when you\'re online.');
       }
-      
+
       // Check accommodation availability
       _accommodationBloc.add(AccommodationCheckAvailability(
-        accommodationId: widget.accommodation.id,
+        accommodationId: widget.accommodation?.id,
         checkInDate: _checkInDate,
         checkOutDate: _checkOutDate,
       ));
@@ -154,7 +163,7 @@ class _BookingScreenState extends State<BookingScreen> {
       start: _checkInDate,
       end: _checkOutDate,
     );
-    
+
     final pickedDateRange = await showDateRangePicker(
       context: context,
       initialDateRange: initialDateRange,
@@ -167,7 +176,8 @@ class _BookingScreenState extends State<BookingScreen> {
               primary: Theme.of(context).primaryColor,
               onPrimary: Colors.white,
               surface: Theme.of(context).cardColor,
-              onSurface: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
+              onSurface:
+                  Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
             ),
             dialogBackgroundColor: Theme.of(context).scaffoldBackgroundColor,
           ),
@@ -175,53 +185,56 @@ class _BookingScreenState extends State<BookingScreen> {
         );
       },
     );
-    
+
     if (pickedDateRange != null) {
       setState(() {
         _checkInDate = pickedDateRange.start;
         _checkOutDate = pickedDateRange.end;
       });
-      
+
       _calculateTotalPrice();
       _checkAvailability('');
     }
   }
 
   // ignore: non_constant_identifier_names
-  Future<void> _completeBooking(dynamic ConnectivityHelper) async {
+  Future<void> _completeBooking(ConnectivityService connectivityHelper) async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    
+
     if (!_isAvailable) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('This accommodation is not available for the selected dates.'),
+          content: Text(
+              'This accommodation is not available for the selected dates.'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       // Check internet connectivity
-      if (!await ConnectivityHelper.isConnected()) {
-        throw Exception('No internet connection. Please try again when you\'re online.');
+      final connectivityStatus = await connectivityHelper.checkConnectivity();
+      if (connectivityStatus != ConnectivityStatus.connected) {
+        throw Exception(
+            'No internet connection. Please try again when you\'re online.');
       }
-      
+
       // Get current user
       final User? currentUser = await SecureStorage().getCurrentUser();
       if (currentUser == null) {
         throw Exception('Please login to complete your booking.');
       }
-      
-      // Submit booking
+
+      // Submit booking with the proper event
       _accommodationBloc.add(AccommodationBooking(
-        accommodationId: widget.accommodation.id,
+        accommodationId: widget.accommodation?.id,
         userId: currentUser.id,
         checkInDate: _checkInDate,
         checkOutDate: _checkOutDate,
@@ -237,8 +250,7 @@ class _BookingScreenState extends State<BookingScreen> {
         _errorMessage = e.toString();
         _isLoading = false;
       });
-      
-      // ignore: use_build_context_synchronously
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_errorMessage ?? 'Failed to complete booking'),
@@ -271,7 +283,8 @@ class _BookingScreenState extends State<BookingScreen> {
               _isAvailable = state.isAvailable;
               _isLoading = false;
               if (!state.isAvailable) {
-                _errorMessage = 'This accommodation is not available for the selected dates.';
+                _errorMessage =
+                    'This accommodation is not available for the selected dates.';
               } else {
                 _errorMessage = null;
               }
@@ -296,7 +309,7 @@ class _BookingScreenState extends State<BookingScreen> {
               _isLoading = false;
               _errorMessage = state.message;
             });
-            
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -325,9 +338,9 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Widget _buildBookingForm() {
     final currencyFormat = NumberFormat.currency(
-      symbol: widget.accommodation.currencySymbol ?? '\$',
+      symbol: widget.accommodation?.currencySymbol ?? '\$',
     );
-    
+
     return Form(
       key: _formKey,
       child: ListView(
@@ -336,13 +349,13 @@ class _BookingScreenState extends State<BookingScreen> {
           // Accommodation summary
           _buildAccommodationSummary(),
           const SizedBox(height: 24.0),
-          
+
           // Booking details section
           _buildSectionTitle('Booking Details'),
           _buildDateSelector(),
           _buildGuestSelector(),
           const SizedBox(height: 24.0),
-          
+
           // Guest information section
           _buildSectionTitle('Guest Information'),
           _buildTextField(
@@ -364,7 +377,8 @@ class _BookingScreenState extends State<BookingScreen> {
               if (value == null || value.isEmpty) {
                 return 'Please enter your email';
               }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                  .hasMatch(value)) {
                 return 'Please enter a valid email';
               }
               return null;
@@ -383,7 +397,7 @@ class _BookingScreenState extends State<BookingScreen> {
             },
           ),
           const SizedBox(height: 24.0),
-          
+
           // Special requests
           _buildSectionTitle('Special Requests (Optional)'),
           _buildTextField(
@@ -392,12 +406,12 @@ class _BookingScreenState extends State<BookingScreen> {
             maxLines: 3,
           ),
           const SizedBox(height: 24.0),
-          
+
           // Price breakdown
           _buildSectionTitle('Price Details'),
           _buildPriceBreakdown(),
           const SizedBox(height: 24.0),
-          
+
           // Error message if any
           if (_errorMessage != null)
             Container(
@@ -412,16 +426,18 @@ class _BookingScreenState extends State<BookingScreen> {
                 style: const TextStyle(color: Colors.red),
               ),
             ),
-          
+
           const SizedBox(height: 24.0),
-          
+
           // Terms and conditions checkbox
           _buildTermsCheckbox(),
           const SizedBox(height: 24.0),
-          
+
           // Book Now button
           ElevatedButton(
-            onPressed: !_isAvailable ? null : _completeBooking,
+            onPressed: !_isAvailable
+                ? null
+                : () => _completeBooking(ConnectivityService()),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
               backgroundColor: Theme.of(context).primaryColor,
@@ -432,7 +448,8 @@ class _BookingScreenState extends State<BookingScreen> {
             ),
             child: Text(
               'Confirm Booking - ${currencyFormat.format(_totalPrice)}',
-              style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+              style:
+                  const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 32.0),
@@ -463,13 +480,14 @@ class _BookingScreenState extends State<BookingScreen> {
               topRight: Radius.circular(12.0),
             ),
             child: CachedNetworkImage(
-              imageUrl: widget.accommodation.imageUrls.first,
+              imageUrl: widget.accommodation?.imageUrls.first,
               height: 150,
               width: double.infinity,
               fit: BoxFit.cover,
               placeholder: (context, url) => Shimmer.fromColors(
                 baseColor: Theme.of(context).colorScheme.surface,
-                highlightColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                highlightColor:
+                    Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
                 child: Container(
                   height: 150,
                   color: Colors.white,
@@ -488,10 +506,10 @@ class _BookingScreenState extends State<BookingScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.accommodation.name,
+                  widget.accommodation!.name,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const SizedBox(height: 8.0),
                 Row(
@@ -500,7 +518,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     const SizedBox(width: 4.0),
                     Expanded(
                       child: Text(
-                        widget.accommodation.address,
+                        widget.accommodation!.address,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ),
@@ -510,7 +528,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 Row(
                   children: [
                     RatingBar.builder(
-                      initialRating: widget.accommodation.rating,
+                      initialRating: widget.accommodation!.rating,
                       minRating: 1,
                       direction: Axis.horizontal,
                       allowHalfRating: true,
@@ -525,7 +543,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     ),
                     const SizedBox(width: 4.0),
                     Text(
-                      '(${widget.accommodation.reviewCount} reviews)',
+                      '(${widget.accommodation?.reviewCount} reviews)',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -544,8 +562,8 @@ class _BookingScreenState extends State<BookingScreen> {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-        ),
+              fontWeight: FontWeight.bold,
+            ),
       ),
     );
   }
@@ -578,8 +596,12 @@ class _BookingScreenState extends State<BookingScreen> {
                   Text(
                     '$_nightCount ${_nightCount == 1 ? 'night' : 'nights'}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
-                    ),
+                          color: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.color
+                              ?.withOpacity(0.6),
+                        ),
                   ),
                 ],
               ),
@@ -617,14 +639,19 @@ class _BookingScreenState extends State<BookingScreen> {
                       '$_guestCount ${_guestCount == 1 ? 'Guest' : 'Guests'}',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
-                    if (widget.accommodation.maxGuests != null)
+                    if (widget.accommodation?.maxGuests != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 4.0),
                         child: Text(
-                          'Maximum: ${widget.accommodation.maxGuests} guests',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
-                          ),
+                          'Maximum: ${widget.accommodation?.maxGuests} guests',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color
+                                        ?.withOpacity(0.6),
+                                  ),
                         ),
                       ),
                   ],
@@ -639,13 +666,13 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   void _showGuestCountPicker() {
-    final maxGuests = widget.accommodation.maxGuests ?? 10;
-    
+    final maxGuests = widget.accommodation?.maxGuests ?? 10;
+
     showModalBottomSheet(
       context: context,
       builder: (context) {
         int tempGuestCount = _guestCount;
-        
+
         return StatefulBuilder(
           builder: (context, setState) {
             return Container(
@@ -738,40 +765,44 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Widget _buildPriceBreakdown() {
     final currencyFormat = NumberFormat.currency(
-      symbol: widget.accommodation.currencySymbol ?? '\$',
+      symbol: widget.accommodation?.currencySymbol ?? '\$',
     );
-    
+
     // Calculate breakdown components
     final nights = _nightCount;
-    final baseNightlyPrice = widget.accommodation.basePrice;
+    final baseNightlyPrice = widget.accommodation?.basePrice;
     final baseTotal = baseNightlyPrice * nights;
-    
+
     // Extra guest charges if applicable
     double extraGuestCharge = 0;
-    final standardOccupancy = widget.accommodation.standardOccupancy ?? 2;
+    final standardOccupancy = widget.accommodation?.standardOccupancy ?? 2;
     if (_guestCount > standardOccupancy) {
       final extraGuests = _guestCount - standardOccupancy;
-      extraGuestCharge = (widget.accommodation.extraGuestCharge ?? 0) * extraGuests * nights;
+      extraGuestCharge =
+          (widget.accommodation?.extraGuestCharge ?? 0) * extraGuests * nights;
     }
-    
+
     // Discounts if applicable
     double discount = 0;
     String? discountLabel;
-    if (nights >= 30 && widget.accommodation.monthlyDiscount != null) {
-      discount = baseTotal * (widget.accommodation.monthlyDiscount! / 100);
-      discountLabel = 'Monthly discount (${widget.accommodation.monthlyDiscount}%)';
-    } else if (nights >= 7 && widget.accommodation.weeklyDiscount != null) {
-      discount = baseTotal * (widget.accommodation.weeklyDiscount! / 100);
-      discountLabel = 'Weekly discount (${widget.accommodation.weeklyDiscount}%)';
+    if (nights >= 30 && widget.accommodation?.monthlyDiscount != null) {
+      discount = baseTotal * (widget.accommodation?.monthlyDiscount! / 100);
+      discountLabel =
+          'Monthly discount (${widget.accommodation?.monthlyDiscount}%)';
+    } else if (nights >= 7 && widget.accommodation?.weeklyDiscount != null) {
+      discount = baseTotal * (widget.accommodation?.weeklyDiscount! / 100);
+      discountLabel =
+          'Weekly discount (${widget.accommodation?.weeklyDiscount}%)';
     }
-    
+
     // Cleaning fee if applicable
-    final cleaningFee = widget.accommodation.cleaningFee ?? 0;
-    
+    final cleaningFee = widget.accommodation?.cleaningFee ?? 0;
+
     // Service fee
-    final serviceFeePercent = widget.accommodation.serviceFeePercent ?? 10;
-    final serviceFee = (baseTotal + extraGuestCharge - discount + cleaningFee) * (serviceFeePercent / 100);
-    
+    final serviceFeePercent = widget.accommodation?.serviceFeePercent ?? 10;
+    final serviceFee = (baseTotal + extraGuestCharge - discount + cleaningFee) *
+        (serviceFeePercent / 100);
+
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -818,7 +849,8 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  Widget _buildPriceRow(String label, String amount, {bool isTotal = false, bool isDiscount = false}) {
+  Widget _buildPriceRow(String label, String amount,
+      {bool isTotal = false, bool isDiscount = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -827,15 +859,24 @@ class _BookingScreenState extends State<BookingScreen> {
           Text(
             label,
             style: isTotal
-                ? Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)
+                ? Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)
                 : Theme.of(context).textTheme.bodyMedium,
           ),
           Text(
             amount,
             style: isTotal
-                ? Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)
+                ? Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold)
                 : isDiscount
-                    ? Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.green)
+                    ? Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: Colors.green)
                     : Theme.of(context).textTheme.bodyMedium,
           ),
         ],

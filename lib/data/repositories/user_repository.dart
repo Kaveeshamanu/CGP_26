@@ -1,46 +1,47 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:taprobana_trails/bloc/auth/auth_bloc.dart';
+import 'package:taprobana_trails/data/models/app_user.dart';
 import 'package:taprobana_trails/data/models/user.dart';
 
 /// Repository for user-related operations.
 class UserRepository {
   final FirebaseFirestore _firestore;
   final String _collection = 'users';
-  
+
   /// Creates a new [UserRepository] instance.
   UserRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
-  
+
   /// Gets a user by ID.
-  Future<AppUser?> getUser(String userId) async {
+  Future<User?> getUser(String userId) async {
     try {
       final doc = await _firestore.collection(_collection).doc(userId).get();
-      
+
       if (!doc.exists) {
         return null;
       }
-      
-      return AppUser.fromJson(doc.data()!);
+
+      return User.fromJson(doc.data()!);
     } catch (e) {
       debugPrint('Error getting user: $e');
       return null;
     }
   }
-  
+
   /// Creates or updates a user.
-  Future<void> saveUser(AppUser user) async {
+  Future<void> saveUser(User user) async {
     try {
       await _firestore.collection(_collection).doc(user.id).set(
-        user.toJson(),
-        SetOptions(merge: true),
-      );
+            user.toJson(),
+            SetOptions(merge: true),
+          );
     } catch (e) {
       debugPrint('Error saving user: $e');
       rethrow;
     }
   }
-  
+
   /// Deletes a user.
   Future<void> deleteUser(String userId) async {
     try {
@@ -50,7 +51,7 @@ class UserRepository {
       rethrow;
     }
   }
-  
+
   /// Updates a user's profile.
   Future<void> updateProfile(
     String userId, {
@@ -65,21 +66,24 @@ class UserRepository {
       final data = <String, dynamic>{
         'updatedAt': FieldValue.serverTimestamp(),
       };
-      
+
       if (displayName != null) data['displayName'] = displayName;
       if (photoUrl != null) data['photoUrl'] = photoUrl;
-      if (preferredLanguage != null) data['preferredLanguage'] = preferredLanguage;
+      if (preferredLanguage != null)
+        data['preferredLanguage'] = preferredLanguage;
       if (homeCurrency != null) data['homeCurrency'] = homeCurrency;
-      if (travelPreferences != null) data['travelPreferences'] = travelPreferences;
-      if (dietaryPreferences != null) data['dietaryPreferences'] = dietaryPreferences;
-      
+      if (travelPreferences != null)
+        data['travelPreferences'] = travelPreferences;
+      if (dietaryPreferences != null)
+        data['dietaryPreferences'] = dietaryPreferences;
+
       await _firestore.collection(_collection).doc(userId).update(data);
     } catch (e) {
       debugPrint('Error updating profile: $e');
       rethrow;
     }
   }
-  
+
   /// Updates a user's notification settings.
   Future<void> updateNotificationSettings(
     String userId, {
@@ -90,24 +94,25 @@ class UserRepository {
       final data = <String, dynamic>{
         'updatedAt': FieldValue.serverTimestamp(),
       };
-      
+
       if (isPushNotificationsEnabled != null) {
         data['isPushNotificationsEnabled'] = isPushNotificationsEnabled;
       }
-      
+
       if (isEmailNotificationsEnabled != null) {
         data['isEmailNotificationsEnabled'] = isEmailNotificationsEnabled;
       }
-      
+
       await _firestore.collection(_collection).doc(userId).update(data);
     } catch (e) {
       debugPrint('Error updating notification settings: $e');
       rethrow;
     }
   }
-  
+
   /// Updates a user's onboarding status.
-  Future<void> updateOnboardingStatus(String userId, bool hasCompletedOnboarding) async {
+  Future<void> updateOnboardingStatus(
+      String userId, bool hasCompletedOnboarding) async {
     try {
       await _firestore.collection(_collection).doc(userId).update({
         'hasCompletedOnboarding': hasCompletedOnboarding,
@@ -118,7 +123,7 @@ class UserRepository {
       rethrow;
     }
   }
-  
+
   /// Adds a destination to a user's saved destinations.
   Future<void> addSavedDestination(String userId, String destinationId) async {
     try {
@@ -131,9 +136,10 @@ class UserRepository {
       rethrow;
     }
   }
-  
+
   /// Removes a destination from a user's saved destinations.
-  Future<void> removeSavedDestination(String userId, String destinationId) async {
+  Future<void> removeSavedDestination(
+      String userId, String destinationId) async {
     try {
       await _firestore.collection(_collection).doc(userId).update({
         'savedDestinations': FieldValue.arrayRemove([destinationId]),
@@ -144,9 +150,10 @@ class UserRepository {
       rethrow;
     }
   }
-  
+
   /// Adds an accommodation to a user's saved accommodations.
-  Future<void> addSavedAccommodation(String userId, String accommodationId) async {
+  Future<void> addSavedAccommodation(
+      String userId, String accommodationId) async {
     try {
       await _firestore.collection(_collection).doc(userId).update({
         'savedAccommodations': FieldValue.arrayUnion([accommodationId]),
@@ -157,9 +164,10 @@ class UserRepository {
       rethrow;
     }
   }
-  
+
   /// Removes an accommodation from a user's saved accommodations.
-  Future<void> removeSavedAccommodation(String userId, String accommodationId) async {
+  Future<void> removeSavedAccommodation(
+      String userId, String accommodationId) async {
     try {
       await _firestore.collection(_collection).doc(userId).update({
         'savedAccommodations': FieldValue.arrayRemove([accommodationId]),
@@ -170,7 +178,7 @@ class UserRepository {
       rethrow;
     }
   }
-  
+
   /// Adds a restaurant to a user's saved restaurants.
   Future<void> addSavedRestaurant(String userId, String restaurantId) async {
     try {
@@ -183,7 +191,7 @@ class UserRepository {
       rethrow;
     }
   }
-  
+
   /// Removes a restaurant from a user's saved restaurants.
   Future<void> removeSavedRestaurant(String userId, String restaurantId) async {
     try {
@@ -196,7 +204,7 @@ class UserRepository {
       rethrow;
     }
   }
-  
+
   /// Updates a user's last login timestamp.
   Future<void> updateLastLoginTimestamp(String userId) async {
     try {

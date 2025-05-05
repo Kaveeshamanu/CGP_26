@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:taprobana_trails/core/location/location_service.dart';
 
 import '../../../data/models/destination.dart';
 import '../../../data/models/accommodation.dart';
@@ -18,7 +19,6 @@ import '../../../data/repositories/accommodation_repository.dart';
 import '../../../data/repositories/restaurant_repository.dart';
 import '../../../data/repositories/transport_repository.dart';
 import '../../../core/utils/connectivity.dart';
-import '../../../core/utils/location_service.dart';
 import '../../../core/utils/permissions.dart';
 
 part 'home_event.dart';
@@ -76,10 +76,11 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
     try {
       // Check internet connectivity
       final isConnected = await connectivityUtils.isConnected();
-      
+
       if (!isConnected) {
         emit(HomeError(
-          message: 'No internet connection. Please check your network settings.',
+          message:
+              'No internet connection. Please check your network settings.',
           isConnectivityError: true,
         ));
         return;
@@ -87,7 +88,7 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
 
       // Load user data
       final user = await userRepository.getCurrentUser();
-      
+
       // Request location permission and get current location
       Position? currentPosition;
       try {
@@ -101,11 +102,13 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
       }
 
       // Load trending destinations
-      final trendingDestinations = await destinationRepository.getTrendingDestinations();
-      
+      final trendingDestinations =
+          await destinationRepository.getTrendingDestinations();
+
       // Load recently viewed destinations
-      final recentlyViewedDestinations = await destinationRepository.getRecentlyViewedDestinations();
-      
+      final recentlyViewedDestinations =
+          await destinationRepository.getRecentlyViewedDestinations(userId: '');
+
       // Load nearby destinations if location is available
       List<Destination> nearbyDestinations = [];
       if (currentPosition != null) {
@@ -115,19 +118,21 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
           radiusKm: 50, // 50km radius
         );
       }
-      
+
       // Load recommended accommodations
-      final recommendedAccommodations = await accommodationRepository.getRecommendedAccommodations();
-      
+      final recommendedAccommodations =
+          await accommodationRepository.getRecommendedAccommodations();
+
       // Load popular restaurants
-      final popularRestaurants = await restaurantRepository.getPopularRestaurants();
-      
+      final popularRestaurants =
+          await restaurantRepository.getPopularRestaurants();
+
       // Load upcoming itineraries
       final upcomingItineraries = await userRepository.getUpcomingItineraries();
-      
+
       // Load deals
       final deals = await destinationRepository.getDeals(limit: 0);
-      
+
       // Load weather data for current location
       Map<String, dynamic>? weatherData;
       if (currentPosition != null) {
@@ -166,7 +171,7 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
   ) async {
     if (state is HomeLoaded) {
       final currentState = state as HomeLoaded;
-      
+
       emit(HomeLoading(
         trendingDestinations: currentState.trendingDestinations,
         recentlyViewedDestinations: currentState.recentlyViewedDestinations,
@@ -181,7 +186,7 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
         isConnected: currentState.isConnected,
       ));
     }
-    
+
     // Re-use same logic as initial load
     add(LoadHomeData());
   }
@@ -191,32 +196,33 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) async {
     if (state is! HomeLoaded) return;
-    
+
     final currentState = state as HomeLoaded;
-    
+
     try {
       final hasPermission = await locationService.requestLocationPermission();
-      
+
       if (!hasPermission) {
         // Location permission denied, keep current state
         return;
       }
-      
+
       final currentPosition = await locationService.getCurrentLocation();
-      
+
       // Load nearby destinations for new location
-      final nearbyDestinations = await destinationRepository.getNearbyDestinations(
+      final nearbyDestinations =
+          await destinationRepository.getNearbyDestinations(
         latitude: currentPosition.latitude,
         longitude: currentPosition.longitude,
         radiusKm: 50, // 50km radius
       );
-      
+
       // Load weather data for new location
       final weatherData = await destinationRepository.getWeatherData(
         latitude: currentPosition.latitude,
         longitude: currentPosition.longitude,
       );
-      
+
       emit(currentState.copyWith(
         nearbyDestinations: nearbyDestinations,
         currentLocation: currentPosition,
@@ -233,10 +239,10 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) async {
     if (state is! HomeLoaded) return;
-    
+
     final currentState = state as HomeLoaded;
     final isConnected = await connectivityUtils.isConnected();
-    
+
     emit(currentState.copyWith(isConnected: isConnected));
   }
 
@@ -245,23 +251,24 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) async {
     if (state is! HomeLoaded) return;
-    
+
     final currentState = state as HomeLoaded;
-    
+
     if (currentState.currentLocation == null) {
       // No location available, can't search nearby
       return;
     }
-    
+
     try {
-      final nearbyDestinations = await destinationRepository.searchNearbyDestinations(
+      final nearbyDestinations =
+          await destinationRepository.searchNearbyDestinations(
         latitude: currentState.currentLocation!.latitude,
         longitude: currentState.currentLocation!.longitude,
         radius: event.radius,
         query: event.query,
         category: event.category,
       );
-      
+
       emit(currentState.copyWith(nearbyDestinations: nearbyDestinations));
     } catch (e) {
       // Error searching nearby destinations, keep current state
@@ -274,18 +281,19 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) async {
     if (state is! HomeLoaded) return;
-    
+
     final currentState = state as HomeLoaded;
-    
+
     try {
       Map<String, dynamic>? weatherData;
-      
+
       if (event.destinationId != null) {
         // Load weather for specific destination
-        final destination = await destinationRepository.getDestinationById(event.destinationId!);
-        
+        final destination = await destinationRepository
+            .getDestinationById(event.destinationId!);
+
         weatherData = await destinationRepository.getWeatherData(
-          latitude: destination.latitude,
+          latitude: destination!.latitude,
           longitude: destination.longitude,
         );
       } else if (currentState.currentLocation != null) {
@@ -295,7 +303,7 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
           longitude: currentState.currentLocation!.longitude,
         );
       }
-      
+
       if (weatherData != null) {
         emit(currentState.copyWith(weatherData: weatherData));
       }
@@ -310,15 +318,15 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) async {
     if (state is! HomeLoaded) return;
-    
+
     final currentState = state as HomeLoaded;
-    
+
     try {
       final deals = await destinationRepository.getDeals(
         category: event.category,
         limit: event.limit,
       );
-      
+
       emit(currentState.copyWith(deals: deals));
     } catch (e) {
       // Error loading deals, keep current state
@@ -331,36 +339,42 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) async {
     if (state is! HomeLoaded) return;
-    
+
     final currentState = state as HomeLoaded;
-    
+
     try {
       await userRepository.toggleFavoriteDestination(event.destinationId);
-      
+
       // Update trending destinations list with favorite status
-      final updatedTrendingDestinations = currentState.trendingDestinations.map((destination) {
+      final updatedTrendingDestinations =
+          currentState.trendingDestinations.map((destination) {
         if (destination.id == event.destinationId) {
-          return destination.copyWith(isFavorite: event.isFavorite, isBookmarked: false);
+          return destination.copyWith(
+              isFavorite: event.isFavorite, isBookmarked: false);
         }
         return destination;
       }).toList();
-      
+
       // Update nearby destinations list with favorite status
-      final updatedNearbyDestinations = currentState.nearbyDestinations.map((destination) {
+      final updatedNearbyDestinations =
+          currentState.nearbyDestinations.map((destination) {
         if (destination.id == event.destinationId) {
-          return destination.copyWith(isFavorite: event.isFavorite, isBookmarked: true);
+          return destination.copyWith(
+              isFavorite: event.isFavorite, isBookmarked: true);
         }
         return destination;
       }).toList();
-      
+
       // Update recently viewed destinations list with favorite status
-      final updatedRecentlyViewedDestinations = currentState.recentlyViewedDestinations.map((destination) {
+      final updatedRecentlyViewedDestinations =
+          currentState.recentlyViewedDestinations.map((destination) {
         if (destination.id == event.destinationId) {
-          return destination.copyWith(isFavorite: event.isFavorite, isBookmarked: true);
+          return destination.copyWith(
+              isFavorite: event.isFavorite, isBookmarked: true);
         }
         return destination;
       }).toList();
-      
+
       emit(currentState.copyWith(
         trendingDestinations: updatedTrendingDestinations,
         nearbyDestinations: updatedNearbyDestinations,
@@ -377,16 +391,17 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) async {
     if (state is! HomeLoaded) return;
-    
+
     final currentState = state as HomeLoaded;
-    
+
     try {
       // Add destination to recently viewed
       await destinationRepository.addToRecentlyViewed(event.destinationId);
-      
+
       // Fetch updated list of recently viewed destinations
-      final recentlyViewedDestinations = await destinationRepository.getRecentlyViewedDestinations();
-      
+      final recentlyViewedDestinations =
+          await destinationRepository.getRecentlyViewedDestinations();
+
       emit(currentState.copyWith(
         recentlyViewedDestinations: recentlyViewedDestinations,
       ));
@@ -401,40 +416,46 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) async {
     if (state is! HomeLoaded) return;
-    
+
     final currentState = state as HomeLoaded;
-    
+
     try {
       // Toggle bookmark status
       await userRepository.toggleBookmarkDestination(
         event.destinationId,
         event.isBookmarked,
       );
-      
+
       // Update trending destinations list with bookmark status
-      final updatedTrendingDestinations = currentState.trendingDestinations.map((destination) {
+      final updatedTrendingDestinations =
+          currentState.trendingDestinations.map((destination) {
         if (destination.id == event.destinationId) {
-          return destination.copyWith(isBookmarked: event.isBookmarked, isFavorite: true);
+          return destination.copyWith(
+              isBookmarked: event.isBookmarked, isFavorite: true);
         }
         return destination;
       }).toList();
-      
+
       // Update nearby destinations list with bookmark status
-      final updatedNearbyDestinations = currentState.nearbyDestinations.map((destination) {
+      final updatedNearbyDestinations =
+          currentState.nearbyDestinations.map((destination) {
         if (destination.id == event.destinationId) {
-          return destination.copyWith(isBookmarked: event.isBookmarked, isFavorite: true);
+          return destination.copyWith(
+              isBookmarked: event.isBookmarked, isFavorite: true);
         }
         return destination;
       }).toList();
-      
+
       // Update recently viewed destinations list with bookmark status
-      final updatedRecentlyViewedDestinations = currentState.recentlyViewedDestinations.map((destination) {
+      final updatedRecentlyViewedDestinations =
+          currentState.recentlyViewedDestinations.map((destination) {
         if (destination.id == event.destinationId) {
-          return destination.copyWith(isBookmarked: event.isBookmarked, isFavorite: true);
+          return destination.copyWith(
+              isBookmarked: event.isBookmarked, isFavorite: true);
         }
         return destination;
       }).toList();
-      
+
       emit(currentState.copyWith(
         trendingDestinations: updatedTrendingDestinations,
         nearbyDestinations: updatedNearbyDestinations,
@@ -451,12 +472,12 @@ class HomeController extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) async {
     if (state is! HomeLoaded) return;
-    
+
     final currentState = state as HomeLoaded;
-    
+
     try {
       final upcomingItineraries = await userRepository.getUpcomingItineraries();
-      
+
       emit(currentState.copyWith(upcomingItineraries: upcomingItineraries));
     } catch (e) {
       // Error loading itineraries, keep current state

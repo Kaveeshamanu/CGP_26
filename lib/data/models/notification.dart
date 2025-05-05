@@ -12,7 +12,17 @@ enum NotificationType {
   itinerary,
   social,
   weather,
-  travel, general, success, error, warning, info, bookingConfirmed, tripReminder, dealAlert, alert, destination,
+  travel,
+  general,
+  success,
+  error,
+  warning,
+  info,
+  bookingConfirmed,
+  tripReminder,
+  dealAlert,
+  alert,
+  destination,
 }
 
 /// Notification model for the application.
@@ -20,40 +30,40 @@ enum NotificationType {
 class AppNotification extends Equatable {
   /// The unique identifier of the notification.
   final String id;
-  
+
   /// The user ID this notification belongs to.
   final String userId;
-  
+
   /// The title of the notification.
   final String title;
-  
+
   /// The body text of the notification.
   final String body;
-  
+
   /// The type of the notification.
   final NotificationType type;
-  
+
   /// Whether the notification has been read.
   final bool isRead;
-  
+
   /// The creation date of the notification.
   final DateTime createdAt;
-  
+
   /// The action link for the notification (optional).
   final String? actionLink;
-  
+
   /// The action text for the notification (optional).
   final String? actionText;
-  
+
   /// The image URL for the notification (optional).
   final String? imageUrl;
-  
+
   /// The reference ID for linked entities (e.g., booking ID, itinerary ID).
   final String? referenceId;
-  
+
   /// Additional data for the notification in JSON format.
   final Map<String, dynamic>? data;
-  
+
   /// Creates a new AppNotification.
   const AppNotification({
     required this.id,
@@ -69,13 +79,14 @@ class AppNotification extends Equatable {
     this.referenceId,
     this.data,
   });
-  
+
   /// Factory constructor that creates an [AppNotification] from JSON.
-  factory AppNotification.fromJson(Map<String, dynamic> json) => _$AppNotificationFromJson(json);
-  
+  factory AppNotification.fromJson(Map<String, dynamic> json) =>
+      _$AppNotificationFromJson(json);
+
   /// Converts this [AppNotification] to JSON.
   Map<String, dynamic> toJson() => _$AppNotificationToJson(this);
-  
+
   /// Creates a copy of this [AppNotification] with the given fields replaced with new values.
   AppNotification copyWith({
     String? id,
@@ -106,7 +117,7 @@ class AppNotification extends Equatable {
       data: data ?? this.data,
     );
   }
-  
+
   /// Gets the icon for the notification type.
   String get typeIcon {
     switch (type) {
@@ -126,9 +137,39 @@ class AppNotification extends Equatable {
         return 'wb_sunny';
       case NotificationType.travel:
         return 'flight';
+      case NotificationType.general:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.success:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.error:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.warning:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.info:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.bookingConfirmed:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.tripReminder:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.dealAlert:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.alert:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.destination:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
-  
+
   /// Gets the color for the notification type.
   int get typeColor {
     switch (type) {
@@ -148,14 +189,44 @@ class AppNotification extends Equatable {
         return 0xFFFFEB3B; // Yellow
       case NotificationType.travel:
         return 0xFF009688; // Teal
+      case NotificationType.general:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.success:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.error:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.warning:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.info:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.bookingConfirmed:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.tripReminder:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.dealAlert:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.alert:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case NotificationType.destination:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
-  
+
   /// Gets the relative time since the notification was created.
   String getRelativeTime() {
     final now = DateTime.now();
     final difference = now.difference(createdAt);
-    
+
     if (difference.inSeconds < 60) {
       return 'just now';
     } else if (difference.inMinutes < 60) {
@@ -168,26 +239,26 @@ class AppNotification extends Equatable {
       return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
     }
   }
-  
+
   @override
   List<Object?> get props => [
-    id,
-    userId,
-    title,
-    body,
-    type,
-    isRead,
-    createdAt,
-    actionLink,
-    actionText,
-    imageUrl,
-    referenceId,
-    data,
-  ];
+        id,
+        userId,
+        title,
+        body,
+        type,
+        isRead,
+        createdAt,
+        actionLink,
+        actionText,
+        imageUrl,
+        referenceId,
+        data,
+      ];
 
-  bool get isImportant => null;
+  bool? get isImportant => null;
 
-  String get message => null;
+  String? get message => null;
 
-  DateTime get timestamp => null;
+  DateTime? get timestamp => null;
 }

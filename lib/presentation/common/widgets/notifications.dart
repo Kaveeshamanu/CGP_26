@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz_data;
 import '../../../bloc/notification/notification_bloc.dart';
-import '../../../bloc/notification/notification_event.dart';
-import '../../../bloc/notification/notification_state.dart';
 import '../../../data/models/notification.dart';
 
 /// A collection of notification widgets and utilities for the Taprobana Trails app
@@ -90,7 +89,8 @@ class NotificationBanner extends StatefulWidget {
   State<NotificationBanner> createState() => _NotificationBannerState();
 }
 
-class _NotificationBannerState extends State<NotificationBanner> with SingleTickerProviderStateMixin {
+class _NotificationBannerState extends State<NotificationBanner>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _opacityAnimation;
@@ -102,7 +102,7 @@ class _NotificationBannerState extends State<NotificationBanner> with SingleTick
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0.0, -1.0),
       end: Offset.zero,
@@ -110,7 +110,7 @@ class _NotificationBannerState extends State<NotificationBanner> with SingleTick
       parent: _controller,
       curve: Curves.fastOutSlowIn,
     ));
-    
+
     _opacityAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -118,10 +118,10 @@ class _NotificationBannerState extends State<NotificationBanner> with SingleTick
       parent: _controller,
       curve: Curves.easeIn,
     ));
-    
+
     // Start the animation
     _controller.forward();
-    
+
     // Set up auto-dismiss after duration
     Future.delayed(widget.duration, () {
       if (mounted) {
@@ -193,11 +193,9 @@ class _NotificationBannerState extends State<NotificationBanner> with SingleTick
     final color = _getColorForType();
     final icon = _getIconForType();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
-    final cardColor = isDarkMode 
-        ? Theme.of(context).cardColor
-        : Colors.white;
-    
+
+    final cardColor = isDarkMode ? Theme.of(context).cardColor : Colors.white;
+
     return SlideTransition(
       position: _slideAnimation,
       child: FadeTransition(
@@ -208,7 +206,7 @@ class _NotificationBannerState extends State<NotificationBanner> with SingleTick
             onTap: widget.onTap,
             child: Container(
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 8.0, 
+                top: MediaQuery.of(context).padding.top + 8.0,
                 bottom: 8.0,
                 left: 16.0,
                 right: 16.0,
@@ -244,9 +242,10 @@ class _NotificationBannerState extends State<NotificationBanner> with SingleTick
                       children: [
                         Text(
                           widget.title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                         ),
                         const SizedBox(height: 4.0),
                         Text(
@@ -296,9 +295,9 @@ class NotificationBadge extends StatelessWidget {
     if (count <= 0 && child == null) {
       return const SizedBox.shrink();
     }
-    
+
     final bgColor = color ?? Colors.red;
-    
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -316,7 +315,8 @@ class NotificationBadge extends StatelessWidget {
               decoration: BoxDecoration(
                 color: bgColor,
                 shape: count > 99 ? BoxShape.rectangle : BoxShape.circle,
-                borderRadius: count > 99 ? BorderRadius.circular(size / 2) : null,
+                borderRadius:
+                    count > 99 ? BorderRadius.circular(size / 2) : null,
                 border: Border.all(
                   color: Theme.of(context).scaffoldBackgroundColor,
                   width: 1.5,
@@ -325,11 +325,12 @@ class NotificationBadge extends StatelessWidget {
               child: Center(
                 child: Text(
                   count > 99 ? '99+' : count.toString(),
-                  style: textStyle ?? TextStyle(
-                    color: Colors.white,
-                    fontSize: size / 2 + 2,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: textStyle ??
+                      TextStyle(
+                        color: Colors.white,
+                        fontSize: size / 2 + 2,
+                        fontWeight: FontWeight.bold,
+                      ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -359,14 +360,14 @@ class NotificationIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<NotificationBloc, NotificationState>(
       builder: (context, state) {
-        final unreadCount = state is NotificationsLoaded 
-            ? state.unreadCount 
-            : 0;
-        
+        final unreadCount =
+            state is NotificationsLoaded ? state.unreadCount : 0;
+
         return InkWell(
-          onTap: onTap ?? () {
-            Navigator.pushNamed(context, '/notification_center');
-          },
+          onTap: onTap ??
+              () {
+                Navigator.pushNamed(context, '/notification_center');
+              },
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -393,28 +394,30 @@ class NotificationIndicator extends StatelessWidget {
 
 /// A utility class for handling local notifications
 class LocalNotificationHelper {
-  static final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
-  
+  static final FlutterLocalNotificationsPlugin
+      _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
   static Future<void> initialize() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@drawable/notification_icon');
-    
+
     final DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
-      onDidReceiveLocalNotification: (int id, String? title, String? body, String? payload) async {
+      onDidReceiveLocalNotification:
+          (int id, String? title, String? body, String? payload) async {
         // handle the notification tap when the app is in the foreground
       },
     );
-    
-    final InitializationSettings initializationSettings = InitializationSettings(
+
+    final InitializationSettings initializationSettings =
+        InitializationSettings(
       android: initializationSettingsAndroid,
       iOS: initializationSettingsIOS,
     );
-    
+
     await _flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
@@ -422,26 +425,28 @@ class LocalNotificationHelper {
       },
     );
   }
-  
+
   /// Request notification permissions
   static Future<bool> requestPermission() async {
     // For iOS
     final bool? resultIOS = await _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>()
         ?.requestPermissions(
           alert: true,
           badge: true,
           sound: true,
         );
-    
+
     // For Android 13 and higher
     final bool? resultAndroid = await _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.requestPermission();
-    
+
     return resultIOS ?? resultAndroid ?? false;
   }
-  
+
   /// Show an immediate notification
   static Future<void> showNotification({
     required int id,
@@ -462,19 +467,19 @@ class LocalNotificationHelper {
       priority: Priority.high,
       showWhen: true,
     );
-    
+
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =
         DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
     );
-    
+
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
       iOS: iOSPlatformChannelSpecifics,
     );
-    
+
     await _flutterLocalNotificationsPlugin.show(
       id,
       title,
@@ -483,7 +488,10 @@ class LocalNotificationHelper {
       payload: payload,
     );
   }
-  
+
+  /// Schedule a notification for a future time
+  // In your LocalNotificationHelper class, update the scheduleNotification method:
+
   /// Schedule a notification for a future time
   static Future<void> scheduleNotification({
     required int id,
@@ -493,16 +501,21 @@ class LocalNotificationHelper {
     String? payload,
     required dynamic UILocalNotificationDateInterpretation,
   }) async {
+    // Convert DateTime to a TZDateTime for zonedSchedule
+    final tz.TZDateTime tzScheduledTime =
+        tz.TZDateTime.from(scheduledTime, tz.local);
+
     await _flutterLocalNotificationsPlugin.zonedSchedule(
       id,
       title,
       body,
-      scheduledTime.toLocal(),
+      tzScheduledTime, // Use TZDateTime instead of DateTime
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'taprobana_trails_scheduled_channel',
           'Scheduled Notifications',
-          channelDescription: 'Scheduled notifications from Taprobana Trails app',
+          channelDescription:
+              'Scheduled notifications from Taprobana Trails app',
           importance: Importance.high,
           priority: Priority.high,
         ),
@@ -511,15 +524,16 @@ class LocalNotificationHelper {
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       androidAllowWhileIdle: true,
-      payload: payload, androidScheduleMode: null,
+      payload: payload,
+      androidScheduleMode: null,
     );
   }
-  
+
   /// Cancel a specific notification
   static Future<void> cancelNotification(int id) async {
     await _flutterLocalNotificationsPlugin.cancel(id);
   }
-  
+
   /// Cancel all notifications
   static Future<void> cancelAllNotifications() async {
     await _flutterLocalNotificationsPlugin.cancelAll();
@@ -533,7 +547,7 @@ extension on AndroidFlutterLocalNotificationsPlugin? {
 /// A manager for displaying in-app notification banners
 class NotificationBannerManager {
   static OverlayEntry? _currentBanner;
-  
+
   /// Show a notification banner
   static void show({
     required BuildContext context,
@@ -546,7 +560,7 @@ class NotificationBannerManager {
   }) {
     // Dismiss current banner if it exists
     dismiss();
-    
+
     // Create a new overlay entry
     _currentBanner = OverlayEntry(
       builder: (context) => NotificationBanner(
@@ -559,11 +573,11 @@ class NotificationBannerManager {
         duration: duration,
       ),
     );
-    
+
     // Show the banner
     Overlay.of(context).insert(_currentBanner!);
   }
-  
+
   /// Dismiss the current banner if it exists
   static void dismiss() {
     if (_currentBanner != null) {

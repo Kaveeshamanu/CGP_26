@@ -3,11 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:taprobana_trails/bloc/forum/forum_bloc.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
-import '../../bloc/forum/forum_bloc.dart';
-import '../../bloc/forum/forum_event.dart';
-import '../../bloc/forum/forum_state.dart';
 import '../../data/models/user.dart';
 import '../../core/utils/connectivity.dart';
 import '../common/widgets/app_bar.dart';
@@ -29,7 +27,8 @@ class ForumScreen extends StatefulWidget {
   State<ForumScreen> createState() => _ForumScreenState();
 }
 
-class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStateMixin {
+class _ForumScreenState extends State<ForumScreen>
+    with SingleTickerProviderStateMixin {
   late ForumBloc _forumBloc;
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
@@ -71,7 +70,8 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
     // Set initial category if provided
     if (widget.categoryId != null) {
       final categoryIndex = _forumCategories.indexWhere(
-        (category) => category.toLowerCase() == widget.categoryName?.toLowerCase(),
+        (category) =>
+            category.toLowerCase() == widget.categoryName?.toLowerCase(),
       );
       if (categoryIndex != -1) {
         _selectedCategoryIndex = categoryIndex;
@@ -90,10 +90,10 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
   }
 
   void _loadForumThreads() {
-    final category = _selectedCategoryIndex == 0 
-        ? null 
+    final category = _selectedCategoryIndex == 0
+        ? null
         : _forumCategories[_selectedCategoryIndex];
-    
+
     _forumBloc.add(ForumThreadsRequested(
       category: category,
       searchQuery: _currentQuery.isEmpty ? null : _currentQuery,
@@ -130,8 +130,8 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
       context,
       '/create_thread',
       arguments: {
-        'categoryId': _selectedCategoryIndex == 0 
-            ? null 
+        'categoryId': _selectedCategoryIndex == 0
+            ? null
             : _forumCategories[_selectedCategoryIndex],
       },
     ).then((_) => _loadForumThreads());
@@ -221,7 +221,8 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
                       boxShadow: [
                         if (isSelected)
                           BoxShadow(
-                            color: Theme.of(context).primaryColor.withOpacity(0.4),
+                            color:
+                                Theme.of(context).primaryColor.withOpacity(0.4),
                             blurRadius: 8.0,
                             offset: const Offset(0, 2),
                           ),
@@ -239,7 +240,8 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
                 Text(
                   _forumCategories[index],
                   style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
                     color: isSelected
                         ? Theme.of(context).primaryColor
                         : Theme.of(context).textTheme.bodyMedium?.color,
@@ -321,7 +323,7 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
         }
 
         // Get threads from state and sort them
-        final threads = state is ForumLoaded 
+        final threads = state is ForumLoaded
             ? _sortThreads(state.threads, sortBy)
             : state is ForumLoading
                 ? _sortThreads(state.threads, sortBy)
@@ -410,11 +412,11 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
   }
 
   List<Map<String, dynamic>> _sortThreads(
-    List<Map<String, dynamic>> threads, 
+    List<Map<String, dynamic>> threads,
     String sortBy,
   ) {
     final filteredThreads = List<Map<String, dynamic>>.from(threads);
-    
+
     switch (sortBy) {
       case 'recent':
         filteredThreads.sort((a, b) {
@@ -439,13 +441,13 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
         return filteredThreads
             .where((thread) => (thread['commentCount'] as int? ?? 0) == 0)
             .toList()
-            ..sort((a, b) {
-              final aDate = DateTime.parse(a['createdAt'] as String);
-              final bDate = DateTime.parse(b['createdAt'] as String);
-              return bDate.compareTo(aDate);
-            });
+          ..sort((a, b) {
+            final aDate = DateTime.parse(a['createdAt'] as String);
+            final bDate = DateTime.parse(b['createdAt'] as String);
+            return bDate.compareTo(aDate);
+          });
     }
-    
+
     return filteredThreads;
   }
 }

@@ -3,8 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
-import 'package:taprobana_trails/bloc/restaurant/restaurant_state.dart';
-
 import '../../bloc/restaurant/restaurant_bloc.dart';
 import '../../config/constants.dart';
 import '../../config/routes.dart';
@@ -34,27 +32,27 @@ class RestaurantListScreen extends StatefulWidget {
 class _RestaurantListScreenState extends State<RestaurantListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  
+
   String _selectedCuisine = 'All';
   String _searchQuery = '';
   String _sortBy = 'rating'; // Options: rating, price, distance
-  
+
   // Filter states
   RangeValues _priceRange = RangeValues(1, 4); // Price levels 1-4
   bool _openNow = false;
   double _minRating = 0.0;
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     // Load restaurants when screen is opened
     _loadRestaurants();
-    
+
     // Add scroll listener for pagination
     _scrollController.addListener(_onScroll);
   }
-  
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -62,36 +60,36 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
     _scrollController.dispose();
     super.dispose();
   }
-  
+
   void _loadRestaurants() {
     if (widget.destinationId != null) {
       context.read<RestaurantBloc>().add(
-        LoadRestaurantsByDestination(
-          destinationId: widget.destinationId!,
-          cuisineType: _selectedCuisine != 'All' ? _selectedCuisine : null,
-          searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
-          minPriceLevel: _priceRange.start.toInt(),
-          maxPriceLevel: _priceRange.end.toInt(),
-          openNow: _openNow ? true : null,
-          minRating: _minRating > 0 ? _minRating : null,
-          sortBy: _sortBy,
-        ),
-      );
+            LoadRestaurantsByDestination(
+              destinationId: widget.destinationId!,
+              cuisineType: _selectedCuisine != 'All' ? _selectedCuisine : null,
+              searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+              minPriceLevel: _priceRange.start.toInt(),
+              maxPriceLevel: _priceRange.end.toInt(),
+              openNow: _openNow ? true : null,
+              minRating: _minRating > 0 ? _minRating : null,
+              sortBy: _sortBy,
+            ),
+          );
     } else {
       context.read<RestaurantBloc>().add(
-        LoadRestaurants(
-          cuisineType: _selectedCuisine != 'All' ? _selectedCuisine : null,
-          searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
-          minPriceLevel: _priceRange.start.toInt(),
-          maxPriceLevel: _priceRange.end.toInt(),
-          openNow: _openNow ? true : null,
-          minRating: _minRating > 0 ? _minRating : null,
-          sortBy: _sortBy,
-        ),
-      );
+            LoadRestaurants(
+              cuisineType: _selectedCuisine != 'All' ? _selectedCuisine : null,
+              searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+              minPriceLevel: _priceRange.start.toInt(),
+              maxPriceLevel: _priceRange.end.toInt(),
+              openNow: _openNow ? true : null,
+              minRating: _minRating > 0 ? _minRating : null,
+              sortBy: _sortBy,
+            ),
+          );
     }
   }
-  
+
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
@@ -101,57 +99,59 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
       }
     }
   }
-  
+
   void _loadMoreRestaurants() {
     final state = context.read<RestaurantBloc>().state;
     if (state is RestaurantsLoaded) {
       final lastRestaurant = state.restaurants.last;
-      
+
       if (widget.destinationId != null) {
         context.read<RestaurantBloc>().add(
-          LoadMoreRestaurantsByDestination(
-            destinationId: widget.destinationId!,
-            lastRestaurantId: lastRestaurant.id,
-            cuisineType: _selectedCuisine != 'All' ? _selectedCuisine : null,
-            searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
-            minPriceLevel: _priceRange.start.toInt(),
-            maxPriceLevel: _priceRange.end.toInt(),
-            openNow: _openNow ? true : null,
-            minRating: _minRating > 0 ? _minRating : null,
-            sortBy: _sortBy,
-          ),
-        );
+              LoadMoreRestaurantsByDestination(
+                destinationId: widget.destinationId!,
+                lastRestaurantId: lastRestaurant.id,
+                cuisineType:
+                    _selectedCuisine != 'All' ? _selectedCuisine : null,
+                searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+                minPriceLevel: _priceRange.start.toInt(),
+                maxPriceLevel: _priceRange.end.toInt(),
+                openNow: _openNow ? true : null,
+                minRating: _minRating > 0 ? _minRating : null,
+                sortBy: _sortBy,
+              ),
+            );
       } else {
         context.read<RestaurantBloc>().add(
-          LoadMoreRestaurants(
-            lastRestaurantId: lastRestaurant.id,
-            cuisineType: _selectedCuisine != 'All' ? _selectedCuisine : null,
-            searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
-            minPriceLevel: _priceRange.start.toInt(),
-            maxPriceLevel: _priceRange.end.toInt(),
-            openNow: _openNow ? true : null,
-            minRating: _minRating > 0 ? _minRating : null,
-            sortBy: _sortBy,
-          ),
-        );
+              LoadMoreRestaurants(
+                lastRestaurantId: lastRestaurant.id,
+                cuisineType:
+                    _selectedCuisine != 'All' ? _selectedCuisine : null,
+                searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+                minPriceLevel: _priceRange.start.toInt(),
+                maxPriceLevel: _priceRange.end.toInt(),
+                openNow: _openNow ? true : null,
+                minRating: _minRating > 0 ? _minRating : null,
+                sortBy: _sortBy,
+              ),
+            );
       }
     }
   }
-  
+
   void _onSearch(String query) {
     setState(() {
       _searchQuery = query;
     });
     _loadRestaurants();
   }
-  
+
   void _onCuisineSelected(String cuisine) {
     setState(() {
       _selectedCuisine = cuisine;
     });
     _loadRestaurants();
   }
-  
+
   void _showFilterBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -160,7 +160,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
       builder: (context) => _buildFilterBottomSheet(),
     );
   }
-  
+
   void _showSortBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -168,7 +168,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
       builder: (context) => _buildSortBottomSheet(),
     );
   }
-  
+
   void _navigateToRestaurantDetails(String restaurantId) {
     Navigator.pushNamed(
       context,
@@ -176,7 +176,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
       arguments: restaurantId,
     );
   }
-  
+
   void _navigateToReservation(Restaurant restaurant) {
     Navigator.pushNamed(
       context,
@@ -184,11 +184,11 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
       arguments: restaurant,
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: CustomAppBar(
         title: widget.title ?? 'Restaurants',
@@ -215,14 +215,14 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
                 hintText: 'Search restaurants',
                 prefixIcon: Icon(Icons.search),
                 suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        _onSearch('');
-                      },
-                    )
-                  : null,
+                    ? IconButton(
+                        icon: Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearch('');
+                        },
+                      )
+                    : null,
                 filled: true,
                 fillColor: theme.colorScheme.surface,
                 border: OutlineInputBorder(
@@ -233,7 +233,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
               ),
             ),
           ),
-          
+
           // Cuisine filter
           Container(
             height: 60,
@@ -242,7 +242,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
               onCuisineSelected: _onCuisineSelected,
             ),
           ),
-          
+
           // Restaurant list
           Expanded(
             child: BlocBuilder<RestaurantBloc, RestaurantState>(
@@ -250,7 +250,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
                 if (state is RestaurantsLoading && !state.isLoadingMore) {
                   return Center(child: LoadingSpinner());
                 }
-                
+
                 if (state is RestaurantsError) {
                   return Center(
                     child: Column(
@@ -281,17 +281,16 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
                     ),
                   );
                 }
-                
-                if (state is RestaurantsLoaded || 
+
+                if (state is RestaurantsLoaded ||
                     (state is RestaurantsLoading && state.isLoadingMore)) {
                   final restaurants = state is RestaurantsLoaded
-                    ? state.restaurants
-                    : (state as RestaurantsLoading).lastLoadedRestaurants;
-                  
-                  final isLoadingMore = state is RestaurantsLoaded
-                    ? state.isLoadingMore
-                    : true;
-                  
+                      ? state.restaurants
+                      : (state as RestaurantsLoading).lastLoadedRestaurants;
+
+                  final isLoadingMore =
+                      state is RestaurantsLoaded ? state.isLoadingMore : true;
+
                   if (restaurants.isEmpty) {
                     return Center(
                       child: Column(
@@ -317,7 +316,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
                       ),
                     );
                   }
-                  
+
                   return RefreshIndicator(
                     onRefresh: () async {
                       _loadRestaurants();
@@ -335,19 +334,20 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
                             ),
                           );
                         }
-                        
+
                         final restaurant = restaurants[index];
-                        
+
                         return RestaurantCard(
                           restaurant: restaurant,
-                          onTap: () => _navigateToRestaurantDetails(restaurant.id),
+                          onTap: () =>
+                              _navigateToRestaurantDetails(restaurant.id),
                           onReserve: () => _navigateToReservation(restaurant),
                         );
                       },
                     ),
                   );
                 }
-                
+
                 // Default loading state
                 return Center(
                   child: CircularProgressIndicator(),
@@ -359,10 +359,10 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
       ),
     );
   }
-  
+
   Widget _buildFilterBottomSheet() {
     final theme = Theme.of(context);
-    
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
       padding: EdgeInsets.all(16),
@@ -392,9 +392,9 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
               ),
             ],
           ),
-          
+
           Divider(),
-          
+
           // Filter options
           Expanded(
             child: ListView(
@@ -429,7 +429,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
                     });
                   },
                 ),
-                
+
                 // Pricing explanation
                 Wrap(
                   spacing: 16,
@@ -440,9 +440,9 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
                     _buildPriceExplanation('\$\$\$\$', 'Luxury'),
                   ],
                 ),
-                
+
                 SizedBox(height: 24),
-                
+
                 // Rating filter
                 Text(
                   'Minimum Rating',
@@ -479,9 +479,9 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
                     });
                   },
                 ),
-                
+
                 SizedBox(height: 24),
-                
+
                 // Open now filter
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -503,9 +503,9 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
                     ),
                   ],
                 ),
-                
+
                 SizedBox(height: 16),
-                
+
                 // Reset and apply buttons
                 Row(
                   children: [
@@ -548,10 +548,10 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
       ),
     );
   }
-  
+
   Widget _buildSortBottomSheet() {
     final theme = Theme.of(context);
-    
+
     return Container(
       padding: EdgeInsets.all(16),
       child: Column(
@@ -565,7 +565,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
             ),
           ),
           SizedBox(height: 16),
-          
+
           // Sort options
           _buildSortOption(
             'Top Rated',
@@ -596,17 +596,17 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
             'popularity',
             Icons.trending_up,
           ),
-          
+
           SizedBox(height: 16),
         ],
       ),
     );
   }
-  
+
   Widget _buildSortOption(String label, String sortValue, IconData icon) {
     final theme = Theme.of(context);
     final isSelected = _sortBy == sortValue;
-    
+
     return InkWell(
       onTap: () {
         setState(() {
@@ -644,7 +644,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
       ),
     );
   }
-  
+
   Widget _buildPriceExplanation(String symbol, String label) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -666,7 +666,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
       ],
     );
   }
-  
+
   String _getPriceLabel(int level) {
     switch (level) {
       case 1:
@@ -681,16 +681,48 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
         return '\$';
     }
   }
-  
+
   LoadingSpinner() {}
-  
-  LoadMoreRestaurants({required String lastRestaurantId, String? cuisineType, String? searchQuery, required int minPriceLevel, required int maxPriceLevel, bool? openNow, double? minRating, required String sortBy}) {}
-  
-  LoadMoreRestaurantsByDestination({required String destinationId, required String lastRestaurantId, String? cuisineType, String? searchQuery, required int minPriceLevel, required int maxPriceLevel, bool? openNow, double? minRating, required String sortBy}) {}
-  
-  LoadRestaurants({String? cuisineType, String? searchQuery, required int minPriceLevel, required int maxPriceLevel, bool? openNow, double? minRating, required String sortBy}) {}
-  
-  LoadRestaurantsByDestination({required String destinationId, String? cuisineType, String? searchQuery, required int minPriceLevel, required int maxPriceLevel, bool? openNow, double? minRating, required String sortBy}) {}
+
+  LoadMoreRestaurants(
+      {required String lastRestaurantId,
+      String? cuisineType,
+      String? searchQuery,
+      required int minPriceLevel,
+      required int maxPriceLevel,
+      bool? openNow,
+      double? minRating,
+      required String sortBy}) {}
+
+  LoadMoreRestaurantsByDestination(
+      {required String destinationId,
+      required String lastRestaurantId,
+      String? cuisineType,
+      String? searchQuery,
+      required int minPriceLevel,
+      required int maxPriceLevel,
+      bool? openNow,
+      double? minRating,
+      required String sortBy}) {}
+
+  LoadRestaurants(
+      {String? cuisineType,
+      String? searchQuery,
+      required int minPriceLevel,
+      required int maxPriceLevel,
+      bool? openNow,
+      double? minRating,
+      required String sortBy}) {}
+
+  LoadRestaurantsByDestination(
+      {required String destinationId,
+      String? cuisineType,
+      String? searchQuery,
+      required int minPriceLevel,
+      required int maxPriceLevel,
+      bool? openNow,
+      double? minRating,
+      required String sortBy}) {}
 }
 
 class RestaurantBloc {

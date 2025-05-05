@@ -5,10 +5,8 @@ import 'package:photo_view/photo_view_gallery.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:taprobana_trails/bloc/gallery/gallery_bloc.dart';
 
-import '../../../bloc/gallery/gallery_bloc.dart';
-import '../../../bloc/gallery/gallery_event.dart';
-import '../../../bloc/gallery/gallery_state.dart';
 import '../../common/widgets/loaders.dart';
 
 /// A widget for displaying a grid of photos with fullscreen gallery view
@@ -49,16 +47,16 @@ class _PhotoGalleryState extends State<PhotoGallery> {
       return const SizedBox.shrink();
     }
 
-    final displayCount = widget.showViewAll && widget.photoUrls.length > widget.maxDisplayed
-        ? widget.maxDisplayed
-        : widget.photoUrls.length;
+    final displayCount =
+        widget.showViewAll && widget.photoUrls.length > widget.maxDisplayed
+            ? widget.maxDisplayed
+            : widget.photoUrls.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header if provided
-        if (widget.title != null || widget.subtitle != null)
-          _buildHeader(),
+        if (widget.title != null || widget.subtitle != null) _buildHeader(),
 
         // Photo grid
         GridView.builder(
@@ -69,15 +67,18 @@ class _PhotoGalleryState extends State<PhotoGallery> {
             crossAxisSpacing: widget.spacing,
             mainAxisSpacing: widget.spacing,
           ),
-          itemCount: widget.showViewAll && widget.photoUrls.length > widget.maxDisplayed
-              ? displayCount + 1  // +1 for the "View All" tile
+          itemCount: widget.showViewAll &&
+                  widget.photoUrls.length > widget.maxDisplayed
+              ? displayCount + 1 // +1 for the "View All" tile
               : displayCount,
           itemBuilder: (context, index) {
-            if (index == displayCount && widget.showViewAll && widget.photoUrls.length > widget.maxDisplayed) {
+            if (index == displayCount &&
+                widget.showViewAll &&
+                widget.photoUrls.length > widget.maxDisplayed) {
               // "View All" tile
               return _buildViewAllTile();
             }
-            
+
             return _buildPhotoTile(index);
           },
         ),
@@ -98,8 +99,8 @@ class _PhotoGalleryState extends State<PhotoGallery> {
                   Text(
                     widget.title!,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 if (widget.subtitle != null)
                   Text(
@@ -109,7 +110,8 @@ class _PhotoGalleryState extends State<PhotoGallery> {
               ],
             ),
           ),
-          if (widget.onTapViewAll != null && widget.photoUrls.length > widget.maxDisplayed)
+          if (widget.onTapViewAll != null &&
+              widget.photoUrls.length > widget.maxDisplayed)
             TextButton(
               onPressed: widget.onTapViewAll,
               child: Text('View All (${widget.photoUrls.length})'),
@@ -143,7 +145,8 @@ class _PhotoGalleryState extends State<PhotoGallery> {
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Shimmer.fromColors(
                   baseColor: Theme.of(context).colorScheme.surface,
-                  highlightColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                  highlightColor:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
                   child: Container(
                     color: Colors.white,
                   ),
@@ -182,7 +185,7 @@ class _PhotoGalleryState extends State<PhotoGallery> {
 
   Widget _buildViewAllTile() {
     final remainingCount = widget.photoUrls.length - widget.maxDisplayed;
-    
+
     return GestureDetector(
       onTap: widget.onTapViewAll ?? () => _openGallery(widget.maxDisplayed),
       child: Container(
@@ -206,7 +209,8 @@ class _PhotoGalleryState extends State<PhotoGallery> {
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Shimmer.fromColors(
                   baseColor: Theme.of(context).colorScheme.surface,
-                  highlightColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                  highlightColor:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
                   child: Container(
                     color: Colors.white,
                   ),
@@ -305,7 +309,7 @@ class _FullscreenGalleryState extends State<FullscreenGallery> {
   void _deleteImage() {
     if (widget.onDelete != null) {
       widget.onDelete!(_currentIndex);
-      
+
       // If we're deleting the last image, go back
       if (_currentIndex == widget.photoUrls.length - 1) {
         if (widget.photoUrls.length == 1) {
@@ -339,11 +343,13 @@ class _FullscreenGalleryState extends State<FullscreenGallery> {
               scrollPhysics: const BouncingScrollPhysics(),
               builder: (context, index) {
                 return PhotoViewGalleryPageOptions(
-                  imageProvider: CachedNetworkImageProvider(widget.photoUrls[index]),
+                  imageProvider:
+                      CachedNetworkImageProvider(widget.photoUrls[index]),
                   initialScale: PhotoViewComputedScale.contained,
                   minScale: PhotoViewComputedScale.contained * 0.8,
                   maxScale: PhotoViewComputedScale.covered * 2.0,
-                  heroAttributes: PhotoViewHeroAttributes(tag: 'photo_${widget.photoUrls[index]}'),
+                  heroAttributes: PhotoViewHeroAttributes(
+                      tag: 'photo_${widget.photoUrls[index]}'),
                 );
               },
               itemCount: widget.photoUrls.length,
@@ -354,7 +360,8 @@ class _FullscreenGalleryState extends State<FullscreenGallery> {
                   child: CircularProgressIndicator(
                     value: event == null
                         ? 0
-                        : event.cumulativeBytesLoaded / (event.expectedTotalBytes ?? 1),
+                        : event.cumulativeBytesLoaded /
+                            (event.expectedTotalBytes ?? 1),
                   ),
                 ),
               ),
@@ -367,7 +374,7 @@ class _FullscreenGalleryState extends State<FullscreenGallery> {
               },
             ),
           ),
-          
+
           // Controls
           if (_isShowingControls) ...[
             // App bar
@@ -425,7 +432,7 @@ class _FullscreenGalleryState extends State<FullscreenGallery> {
                 ),
               ),
             ),
-            
+
             // Image counter
             Positioned(
               bottom: 16.0,
@@ -445,7 +452,8 @@ class _FullscreenGalleryState extends State<FullscreenGallery> {
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0, vertical: 6.0),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(20.0),
@@ -496,19 +504,19 @@ class ManagedPhotoGallery extends StatelessWidget {
         if (state is GalleryInitial) {
           // If initial state, dispatch event to load photos
           context.read<GalleryBloc>().add(GalleryPhotosRequested(
-            entityId: entityId,
-            entityType: entityType,
-          ));
-          
+                entityId: entityId,
+                entityType: entityType,
+              ));
+
           return const Center(
             child: CircularProgressIndicator(),
           );
         }
-        
+
         if (state is GalleryLoading && state.photos.isEmpty) {
           return _buildLoadingGrid();
         }
-        
+
         if (state is GalleryError) {
           return Center(
             child: Column(
@@ -521,9 +529,9 @@ class ManagedPhotoGallery extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () {
                     context.read<GalleryBloc>().add(GalleryPhotosRequested(
-                      entityId: entityId,
-                      entityType: entityType,
-                    ));
+                          entityId: entityId,
+                          entityType: entityType,
+                        ));
                   },
                   child: const Text('Try Again'),
                 ),
@@ -531,19 +539,20 @@ class ManagedPhotoGallery extends StatelessWidget {
             ),
           );
         }
-        
-        final photos = state is GalleryLoaded 
-            ? state.photos 
+
+        final photos = state is GalleryLoaded
+            ? state.photos
             : state is GalleryLoading
                 ? state.photos
                 : [];
-        
+
         if (photos.isEmpty) {
           return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.photo_library_outlined, color: Colors.grey, size: 48.0),
+                const Icon(Icons.photo_library_outlined,
+                    color: Colors.grey, size: 48.0),
                 const SizedBox(height: 16.0),
                 Text(
                   'No photos available',
@@ -553,7 +562,7 @@ class ManagedPhotoGallery extends StatelessWidget {
             ),
           );
         }
-        
+
         return PhotoGallery(
           photoUrls: photos.map((photo) => photo['url'] as String).toList(),
           title: title,
@@ -561,31 +570,36 @@ class ManagedPhotoGallery extends StatelessWidget {
           crossAxisCount: crossAxisCount,
           spacing: spacing,
           canDelete: canDelete,
-          onDelete: canDelete ? (index) {
-            final photoId = photos[index]['id'] as String;
-            context.read<GalleryBloc>().add(GalleryPhotoDelete(
-              entityId: entityId,
-              entityType: entityType,
-              photoId: photoId,
-            ));
-          } : null,
+          onDelete: canDelete
+              ? (index) {
+                  final photoId = photos[index]['id'] as String;
+                  context.read<GalleryBloc>().add(GalleryPhotoDelete(
+                        entityId: entityId,
+                        entityType: entityType,
+                        photoId: photoId,
+                      ));
+                }
+              : null,
           onTapViewAll: () {
             // Navigate to a dedicated gallery view if needed
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => FullscreenGallery(
-                  photoUrls: photos.map((photo) => photo['url'] as String).toList(),
+                  photoUrls:
+                      photos.map((photo) => photo['url'] as String).toList(),
                   title: title,
                   canDelete: canDelete,
-                  onDelete: canDelete ? (index) {
-                    final photoId = photos[index]['id'] as String;
-                    context.read<GalleryBloc>().add(GalleryPhotoDelete(
-                      entityId: entityId,
-                      entityType: entityType,
-                      photoId: photoId,
-                    ));
-                  } : null,
+                  onDelete: canDelete
+                      ? (index) {
+                          final photoId = photos[index]['id'] as String;
+                          context.read<GalleryBloc>().add(GalleryPhotoDelete(
+                                entityId: entityId,
+                                entityType: entityType,
+                                photoId: photoId,
+                              ));
+                        }
+                      : null,
                 ),
               ),
             );
