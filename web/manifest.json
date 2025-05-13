@@ -1,6 +1,6 @@
 {
-    "name": "taprobana_trails",
-    "short_name": "taprobana_trails",
+    "name": "taprobana_trails_app",
+    "short_name": "taprobana_trails_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "851272316482",
+    "project_id": "taprobana-trails",
+    "storage_bucket": "taprobana-trails.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:851272316482:android:96d9f94c7489dd4deb9fdb",
+        "android_client_info": {
+          "package_name": "com.example.taprobana_trails"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmrN7Le2Yk3Ts_Kq4iNnbttlon8yHv-5g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:851272316482:android:3b01290d5227662beb9fdb",
+        "android_client_info": {
+          "package_name": "com.example.taprobana_trails_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmrN7Le2Yk3Ts_Kq4iNnbttlon8yHv-5g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
